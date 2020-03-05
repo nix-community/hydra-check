@@ -1,4 +1,3 @@
-
 """usage: hydra-check [options] PACKAGE [CHANNEL]
 
 options:
@@ -19,6 +18,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 from sys import exit
+
 # guess functions are intended to be fast without external queries
 def guess_jobset(channel):
     # TODO guess the latest stable channel
@@ -35,9 +35,10 @@ def guess_jobset(channel):
         # we asume that the user knows the jobset name ( nixos/release-19.09 )
         return channel
 
-def guess_packagename(package,arch,is_channel):
+
+def guess_packagename(package, arch, is_channel):
     # TODO: maybe someone provides the architecture in the package name?
-    if package.startswith('nixpkgs.') or package.startswith('nixos.'):
+    if package.startswith("nixpkgs.") or package.startswith("nixos."):
         # we assume user knows the full package name
         return f"{package}.{arch}"
     elif is_channel:
@@ -45,6 +46,7 @@ def guess_packagename(package,arch,is_channel):
         return f"nixpkgs.{package}.{arch}"
     else:
         return f"{package}.{arch}"
+
 
 def fetch_data(ident):
     # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
@@ -57,46 +59,52 @@ def fetch_data(ident):
         exit(1)
     return resp.text
 
+
 def parse_build_html(data):
-    doc = BeautifulSoup(data,features="html.parser")
-    for row in doc.find("tbody").find_all('tr'):
-        status,build,timestamp,name,arch = row.find_all('td')
-        status = status.find('img')['title']
-        build_id = build.find('a').text
-        build_url = build.find('a')['href']
-        timestamp = timestamp.find('time')['datetime']
+    doc = BeautifulSoup(data, features="html.parser")
+    for row in doc.find("tbody").find_all("tr"):
+        status, build, timestamp, name, arch = row.find_all("td")
+        status = status.find("img")["title"]
+        build_id = build.find("a").text
+        build_url = build.find("a")["href"]
+        timestamp = timestamp.find("time")["datetime"]
         name = name.text
-        arch = arch.find('tt').text
-        success = status == 'Succeeded'
-        icon = '✔' if success else '✖'
-        yield { "icon": icon,
-                "success": success,
-                "status": status,
-                "build_id": build_id,
-                "build_url": build_url,
-                "name": name,
-                "arch": arch
-                }
+        arch = arch.find("tt").text
+        success = status == "Succeeded"
+        icon = "✔" if success else "✖"
+        yield {
+            "icon": icon,
+            "success": success,
+            "status": status,
+            "build_id": build_id,
+            "build_url": build_url,
+            "name": name,
+            "arch": arch,
+        }
+
 
 def print_build(build):
-    extra = "" if build['success'] else f" ({build['status']})"
+    extra = "" if build["success"] else f" ({build['status']})"
     print(f"{build['icon']}{extra} {build['name']} {build['build_url']}")
+
+
 def main():
     from docopt import docopt
+
     args = docopt(__doc__)
-    channel = args['CHANNEL'] or 'unstable'
-    package = args['PACKAGE']
-    arch = args['--arch']
+    channel = args["CHANNEL"] or "unstable"
+    package = args["PACKAGE"]
+    arch = args["--arch"]
     jobset = guess_jobset(channel)
-    is_channel = jobset.startswith('nixos/')
-    package_name = guess_packagename(package,arch,is_channel)
+    is_channel = jobset.startswith("nixos/")
+    package_name = guess_packagename(package, arch, is_channel)
     ident = f"{jobset}/{package_name}"
     resp = fetch_data(ident)
     builds = list(parse_build_html(resp))
-    if not args['--json']:
+    if not args["--json"]:
         latest = builds[0]
         print_build(latest)
-        if not latest['success'] and not args['--short']:
+        if not latest["success"] and not args["--short"]:
             print()
             print("Last Builds:")
             for build in builds[1:]:
