@@ -21,5 +21,5 @@ buildPythonPackage {
     requests
     beautifulsoup4
   ];
-  checkInputs = [ black ];
+  checkInputs = [ black jq ];
 }
