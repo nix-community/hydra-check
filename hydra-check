@@ -1,9 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env nix-shell
+#!nix-shell -p python3.pkgs.docopt python3.pkgs.requests python3.pkgs.beautifulsoup4 -i python3
+
 # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
 # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
 # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
 
-""" usage: checker [options] PACKAGE [CHANNEL]
+""" usage: hydra-check [options] PACKAGE [CHANNEL]
 
 options:
     --arch=SYSTEM        system architecture to check [default: x86_64-linux]
