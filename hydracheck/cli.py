@@ -76,6 +76,7 @@ def parse_build_html(data):
             "icon": icon,
             "success": success,
             "status": status,
+            "timestamp": timestamp,
             "build_id": build_id,
             "build_url": build_url,
             "name": name,
@@ -85,7 +86,9 @@ def parse_build_html(data):
 
 def print_build(build):
     extra = "" if build["success"] else f" ({build['status']})"
-    print(f"{build['icon']}{extra} {build['name']} {build['build_url']}")
+    print(
+        f"{build['icon']}{extra} {build['name']} from {build['timestamp'].split('T')[0]} - {build['build_url']}"
+    )
 
 
 def main():
