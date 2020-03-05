@@ -5,11 +5,12 @@
 # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
 # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
 
-""" usage: hydra-check [options] PACKAGE [CHANNEL]
+"""usage: hydra-check [options] PACKAGE [CHANNEL]
 
 options:
     --arch=SYSTEM        system architecture to check [default: x86_64-linux]
     --json               write builds in machine-readable format
+    --short              write only the latest build even if last build failed
 
 
 CHANNEL: channel to use:
@@ -99,7 +100,7 @@ def main():
     if not args['--json']:
         latest = builds[0]
         print_build(latest)
-        if not latest['success']:
+        if not latest['success'] and not args['--short']:
             print()
             print("Last Builds:")
             for build in builds[1:]:
