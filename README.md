@@ -2,23 +2,25 @@
 
 check hydra for the build status of a package in a given channel
 
-# usage
+# Usage
 
 ```
-$ ./hydra-check --help
+$ nix-shell
+
+$ hydra-check --help
 usage: hydra-check [options] PACKAGE [CHANNEL]
 ...
 
-$ ./hydra-check hello
+$ hydra-check hello
 ✔ hello-2.10 https://hydra.nixos.org/build/113804835
 
-$ ./hydra-check hello 19.03
+$ hydra-check hello 19.03
 ✔ hello-2.10 https://hydra.nixos.org/build/103243113
 
-$ ./hydra-check ugarit 19.09 --short
+$ hydra-check ugarit 19.09 --short
 ✖ (Dependency failed) chicken-ugarit-2.0 https://hydra.nixos.org/build/108216732
 
-$ ./hydra-check nixos.tests.installer.simpleUefiGrub 19.09 --arch aarch64-linux
+$ hydra-check nixos.tests.installer.simpleUefiGrub 19.09 --arch aarch64-linux
 ✖ (Failed) vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113892497
 
 Last Builds:
