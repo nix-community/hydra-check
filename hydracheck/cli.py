@@ -1,9 +1,3 @@
-#!/usr/bin/env nix-shell
-#!nix-shell -p python3.pkgs.docopt python3.pkgs.requests python3.pkgs.beautifulsoup4 -i python3
-
-# https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
-# https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
-# https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
 
 """usage: hydra-check [options] PACKAGE [CHANNEL]
 
@@ -53,6 +47,9 @@ def guess_packagename(package,arch,is_channel):
         return f"{package}.{arch}"
 
 def fetch_data(ident):
+    # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
+    # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
+    # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
     url = f"https://hydra.nixos.org/job/{ident}/all"
     resp = requests.get(url)
     if resp.status_code == 404:
@@ -62,7 +59,6 @@ def fetch_data(ident):
 
 def parse_build_html(data):
     doc = BeautifulSoup(data,features="html.parser")
-    # <tr> <td> <img alt="Dependency failed" class="build-status" height="16" src="https://hydra.nixos.org/static/images/emojione-gray-x-2716.svg" title="Dependency failed" width="16"/> </td> <td><a class="row-link" href="https://hydra.nixos.org/build/100459508">100459508</a></td> <td class="nowrap"><time class="date is-relative" data-timestamp="1568739290" datetime="2019-09-17T16:54:50Z" title="2019-09-17 18:54:50 (CEST)">2019-09-17</time></td> <td>chicken-ugarit-2.0</td> <td class="nowrap"><tt>x86_64-linux</tt></td> </tr>
     for row in doc.find("tbody").find_all('tr'):
         status,build,timestamp,name,arch = row.find_all('td')
         status = status.find('img')['title']
