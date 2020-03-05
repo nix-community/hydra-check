@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+# https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
+# https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
+# https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
+
+""" usage: checker [options] PACKAGE [CHANNEL]
+
+options:
+    --arch=SYSTEM        system architecture to check [default: x86_64-linux]
+    --json               write builds in machine-readable format
+
+
+CHANNEL: channel to use [Default: unstable]
+         can be:
+            master
+            unstable
+            19.03 19.09 20.03 etc
+            nixos/release-19.09
+
+example: checker hello master
+"""
+from bs4 import BeautifulSoup
+import json
+
+# guess functions are intended to be fast without external queries
+def guess_jobset(channel):
+    # TODO guess the latest stable channel
+    if channel == "master":
+        return "nixpkgs/trunk"
+    elif channel == "unstable":
+        return "nixos/trunk-combined"
+    elif channel == "staging":
+        return "nixos/staging"
+    elif channel[0].isdigit():
+        # 19.09, 20.03 etc
+        return f"nixos/release-{channel}"
+    else:
+        # we asume that the user knows the jobset name ( nixos/release-19.09 )
+        return channel
+
+def guess_packagename(package,arch):
+    # TODO: maybe someone provides the architecture in the package name?
+    if package.startswith('nixpkgs.') or package.startswith('nixos.'):
+        # we assume user knows the full package name
+        return f"{package}.{arch}"
+    else:
+        # we simply guess, that the user searches for a package and not a test
+        return f"nixpkgs.{package}.{arch}"
+
+def fetch_data(ident):
+    url = f"https://hydra.nixos.org/job/{ident}/all"
+    #return open('test/always_failed.html').read()
+    #return open('test/success.html').read()
+    return open('test/failed_after_success.html').read()
+def parse_build_html(data):
+    doc = BeautifulSoup(data,features="html.parser")
+    # <tr> <td> <img alt="Dependency failed" class="build-status" height="16" src="https://hydra.nixos.org/static/images/emojione-gray-x-2716.svg" title="Dependency failed" width="16"/> </td> <td><a class="row-link" href="https://hydra.nixos.org/build/100459508">100459508</a></td> <td class="nowrap"><time class="date is-relative" data-timestamp="1568739290" datetime="2019-09-17T16:54:50Z" title="2019-09-17 18:54:50 (CEST)">2019-09-17</time></td> <td>chicken-ugarit-2.0</td> <td class="nowrap"><tt>x86_64-linux</tt></td> </tr>
+    for row in doc.find("tbody").find_all('tr'):
+        status,build,timestamp,name,arch = row.find_all('td')
+        status = status.find('img')['title']
+        build_id = build.find('a').text
+        build_url = build.find('a')['href']
+        timestamp = timestamp.find('time')['datetime']
+        name = name.text
+        arch = arch.find('tt').text
+        success = status == 'Succeeded'
+        icon = '✔' if success else '✖'
+        yield { "icon": icon,
+                "success": success,
+                "status": status,
+                "build_id": build_id,
+                "build_url": build_url,
+                "name": name,
+                "arch": arch
+                }
+
+def print_build(build):
+    extra = "" if build['success'] else f" ({build['status']})"
+    print(f"{build['icon']}{extra} {build['name']} {build['build_url']}")
+def main():
+    from docopt import docopt
+    args = docopt(__doc__)
+    channel = args['CHANNEL'] or 'unstable'
+    package = args['PACKAGE']
+    arch = args['--arch']
+    jobset = guess_jobset(channel)
+    package_name = guess_packagename(package,arch)
+    ident = f"{jobset}/{package_name}"
+    resp = fetch_data(ident)
+    builds = list(parse_build_html(resp))
+    if not args['--json']:
+        latest = builds[0]
+        print_build(latest)
+        if not latest['success']:
+            print()
+            print("Last Builds:")
+            for build in builds[1:]:
+                print_build(build)
+    else:
+        print(json.dumps(builds))
+
+
+if __name__ == "__main__":
+    main()
