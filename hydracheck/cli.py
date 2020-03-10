@@ -4,6 +4,7 @@ options:
     --arch=SYSTEM        system architecture to check [default: x86_64-linux]
     --json               write builds in machine-readable format
     --short              write only the latest build even if last build failed
+    --url                only print the hydra build url, then exit
 
 
 CHANNEL: channel to use:
@@ -48,11 +49,15 @@ def guess_packagename(package, arch, is_channel):
         return f"{package}.{arch}"
 
 
+def get_url(ident):
+    # there is also {url}/all which is a lot slower
+    return f"https://hydra.nixos.org/job/{ident}"
+
 def fetch_data(ident):
     # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
-    # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux/all
+    # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux
     # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
-    url = f"https://hydra.nixos.org/job/{ident}/all"
+    url = get_url(ident)
     resp = requests.get(url)
     if resp.status_code == 404:
         print(f"package {ident} not found at url {url}")
@@ -63,7 +68,13 @@ def fetch_data(ident):
 def parse_build_html(data):
     doc = BeautifulSoup(data, features="html.parser")
     for row in doc.find("tbody").find_all("tr"):
-        status, build, timestamp, name, arch = row.find_all("td")
+        try:
+            status, build, timestamp, name, arch = row.find_all("td")
+        except ValueError:
+            if row.find("td").find("a")["href"].endswith("/all"):
+                continue
+            else:
+                raise
         status = status.find("img")["title"]
         build_id = build.find("a").text
         build_url = build.find("a")["href"]
@@ -98,10 +109,15 @@ def main():
     channel = args["CHANNEL"] or "unstable"
     package = args["PACKAGE"]
     arch = args["--arch"]
+    only_url = args["--url"]
     jobset = guess_jobset(channel)
     is_channel = jobset.startswith("nixos/")
     package_name = guess_packagename(package, arch, is_channel)
     ident = f"{jobset}/{package_name}"
+    if only_url:
+        print(get_url(ident))
+        exit(0)
+
     resp = fetch_data(ident)
     builds = list(parse_build_html(resp))
     if not args["--json"]:
