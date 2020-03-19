@@ -11,61 +11,87 @@ Keep in mind that hydra is the NixOS build-farm orchestrator and has more import
 $ nix-shell
 
 $ hydra-check --help
-usage: hydra-check [options] PACKAGE [CHANNEL]
+usage: hydra-check [options] PACKAGES...
 ...
 
 $ hydra-check hello
-✔ hello-2.10 https://hydra.nixos.org/build/113804835
+Build Status for nixpkgs.hello.x86_64-linux on unstable
+✔ hello-2.10 from 2020-03-14 - https://hydra.nixos.org/build/114752982
 
-$ hydra-check hello 19.03
-✔ hello-2.10 https://hydra.nixos.org/build/103243113
+$ hydra-check hello python --channel 19.03
+Build Status for nixpkgs.hello.x86_64-linux on 19.03
+✔ hello-2.10 from 2019-10-14 - https://hydra.nixos.org/build/103243113
+Build Status for nixpkgs.python.x86_64-linux on 19.03
+✔ python-2.7.17 from 2020-01-14 - https://hydra.nixos.org/build/110523905
 
-$ hydra-check nixos.tests.installer.simpleUefiGrub 19.09 --arch aarch64-linux
-✖ (Failed) vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113892497
+
+$ hydra-check nixos.tests.installer.simpleUefiGrub --channel 19.09 --arch aarch64-linux
+Build Status for nixos.tests.installer.simpleUefiGrub.aarch64-linux on 19.09
+✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-19 - https://hydra.nixos.org/build/115139363
 
 Last Builds:
-✖ (Failed) vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113857097
-✔ vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113855182
-✔ vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113849540
-✔ vm-test-run-installer-simpleUefiGrub https://hydra.nixos.org/build/113448926
+✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115135183
+✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115093440
+✔ vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115073926
+✔ vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/115013869
+✖ (Cancelled) vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/114921818
+✔ vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/114887664
+✖ (Timed out) vm-test-run-installer-simpleUefiGrub from 2020-03-16 - https://hydra.nixos.org/build/114881668
 ...
 
-$ hydra-check ugarit 19.09 --short
-✖ (Dependency failed) chicken-ugarit-2.0 https://hydra.nixos.org/build/108216732
+$ hydra-check ugarit --channel 19.09 --short
+Build Status for nixpkgs.ugarit.x86_64-linux on 19.09
+✖ (Dependency failed) chicken-ugarit-2.0 from 2020-02-23 - https://hydra.nixos.org/build/108216732
 
-$ hydra-check nixos.containerTarball 19.09 --arch i686-linux --json | jq .
-[
-  {
-    "icon": "✖",
-    "success": false,
-    "status": "Failed",
-    "timestamp": "2020-03-05T15:03:15Z",
-    "build_id": "113892448",
-    "build_url": "https://hydra.nixos.org/build/113892448",
-    "name": "tarball",
-    "arch": "i686-linux"
-  },
-  {
-    "icon": "✔",
-    "success": true,
-    "status": "Succeeded",
-    "timestamp": "2020-03-04T14:56:01Z",
-    "build_id": "113857110",
-    "build_url": "https://hydra.nixos.org/build/113857110",
-    "name": "tarball",
-    "arch": "i686-linux"
-  },
-  {
-    "icon": "✖",
-    "success": false,
-    "status": "Failed",
-    "timestamp": "2020-03-04T02:52:56Z",
-    "build_id": "113855194",
-    "build_url": "https://hydra.nixos.org/build/113855194",
-    "name": "tarball",
-    "arch": "i686-linux"
-  },
-  ...
-]
+
+$ hydra-check nixos.containerTarball hello --channel 19.09 --arch i686-linux --json | jq .
+{
+  "nixos.containerTarball": [
+    {
+      "icon": "✖",
+      "success": false,
+      "status": "Failed",
+      "timestamp": "2020-03-18T22:02:59Z",
+      "build_id": "115099119",
+      "build_url": "https://hydra.nixos.org/build/115099119",
+      "name": "tarball",
+      "arch": "i686-linux"
+    },
+    {
+      "icon": "✖",
+      "success": false,
+      "status": "Failed",
+      "timestamp": "2020-03-17T18:10:09Z",
+      "build_id": "115073178",
+      "build_url": "https://hydra.nixos.org/build/115073178",
+      "name": "tarball",
+      "arch": "i686-linux"
+    },
+    ...
+  ],
+    "hello": [
+    {
+      "icon": "✔",
+      "success": true,
+      "status": "Succeeded",
+      "timestamp": "2017-07-31T13:28:03Z",
+      "build_id": "57619684",
+      "build_url": "https://hydra.nixos.org/build/57619684",
+      "name": "hello-2.10",
+      "arch": "i686-linux"
+    },
+    {
+      "icon": "✔",
+      "success": true,
+      "status": "Succeeded",
+      "timestamp": "2017-07-25T03:36:27Z",
+      "build_id": "56997384",
+      "build_url": "https://hydra.nixos.org/build/56997384",
+      "name": "hello-2.10",
+      "arch": "i686-linux"
+    },
+    ...
+  ]
+}
 
 ```
