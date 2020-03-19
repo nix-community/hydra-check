@@ -1,13 +1,13 @@
-"""usage: hydra-check [options] PACKAGE [CHANNEL]
+"""usage: hydra-check [options] PACKAGES...
 
 options:
     --arch=SYSTEM        system architecture to check [default: x86_64-linux]
     --json               write builds in machine-readable format
     --short              write only the latest build even if last build failed
     --url                only print the hydra build url, then exit
+    --channel=CHAN       Channel to check packages for [Default: unstable]
 
-
-CHANNEL: channel to use:
+Other channels can be:
     master
     unstable (Default)
     19.03 19.09 20.03
@@ -52,6 +52,7 @@ def guess_packagename(package, arch, is_channel):
 def get_url(ident):
     # there is also {url}/all which is a lot slower
     return f"https://hydra.nixos.org/job/{ident}"
+
 
 def fetch_data(ident):
     # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
@@ -106,30 +107,37 @@ def main():
     from docopt import docopt
 
     args = docopt(__doc__)
-    channel = args["CHANNEL"] or "unstable"
-    package = args["PACKAGE"]
+    channel = args["--channel"]
+    packages = args["PACKAGES"]
     arch = args["--arch"]
     only_url = args["--url"]
     jobset = guess_jobset(channel)
     is_channel = jobset.startswith("nixos/")
-    package_name = guess_packagename(package, arch, is_channel)
-    ident = f"{jobset}/{package_name}"
-    if only_url:
-        print(get_url(ident))
-        exit(0)
+    as_json = args["--json"]
+    all_builds = {}
 
-    resp = fetch_data(ident)
-    builds = list(parse_build_html(resp))
-    if not args["--json"]:
-        latest = builds[0]
-        print_build(latest)
-        if not latest["success"] and not args["--short"]:
-            print()
-            print("Last Builds:")
-            for build in builds[1:]:
-                print_build(build)
-    else:
-        print(json.dumps(builds))
+    for package in packages:
+        package_name = guess_packagename(package, arch, is_channel)
+        ident = f"{jobset}/{package_name}"
+        if only_url:
+            print(get_url(ident))
+            continue
+
+        resp = fetch_data(ident)
+        builds = list(parse_build_html(resp))
+        all_builds[package] = builds
+
+        if not as_json:
+            latest = builds[0]
+            print(f"Build Status for {package_name} on {channel}")
+            print_build(latest)
+            if not latest["success"] and not args["--short"]:
+                print()
+                print("Last Builds:")
+                for build in builds[1:]:
+                    print_build(build)
+    if as_json:
+        print(json.dumps(all_builds))
 
 
 if __name__ == "__main__":
