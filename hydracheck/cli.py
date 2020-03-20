@@ -18,10 +18,12 @@ Other channels can be:
 from bs4 import BeautifulSoup
 import requests
 import json
+from typing import Dict, Iterator
 from sys import exit
 
+
 # guess functions are intended to be fast without external queries
-def guess_jobset(channel):
+def guess_jobset(channel: str) -> str:
     # TODO guess the latest stable channel
     if channel == "master":
         return "nixpkgs/trunk"
@@ -37,7 +39,7 @@ def guess_jobset(channel):
         return channel
 
 
-def guess_packagename(package, arch, is_channel):
+def guess_packagename(package: str, arch: str, is_channel: bool) -> str:
     # TODO: maybe someone provides the architecture in the package name?
     if package.startswith("nixpkgs.") or package.startswith("nixos."):
         # we assume user knows the full package name
@@ -49,12 +51,12 @@ def guess_packagename(package, arch, is_channel):
         return f"{package}.{arch}"
 
 
-def get_url(ident):
+def get_url(ident: str) -> str:
     # there is also {url}/all which is a lot slower
     return f"https://hydra.nixos.org/job/{ident}"
 
 
-def fetch_data(ident):
+def fetch_data(ident: str) -> str:
     # https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
     # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux
     # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
@@ -66,7 +68,7 @@ def fetch_data(ident):
     return resp.text
 
 
-def parse_build_html(data):
+def parse_build_html(data: str) -> Iterator[Dict[str, str]]:
     doc = BeautifulSoup(data, features="html.parser")
     for row in doc.find("tbody").find_all("tr"):
         try:
@@ -96,14 +98,14 @@ def parse_build_html(data):
         }
 
 
-def print_build(build):
+def print_build(build: Dict[str, str]) -> None:
     extra = "" if build["success"] else f" ({build['status']})"
     print(
         f"{build['icon']}{extra} {build['name']} from {build['timestamp'].split('T')[0]} - {build['build_url']}"
     )
 
 
-def main():
+def main() -> None:
     from docopt import docopt
 
     args = docopt(__doc__)
