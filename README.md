@@ -1,5 +1,7 @@
 # hydra-check
 
+![Test](https://github.com/nix-community/hydra-check/workflows/Test/badge.svg)
+
 check hydra for the build status of a package in a given channel.
 
 # Disclaimer
