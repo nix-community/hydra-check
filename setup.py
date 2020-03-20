@@ -9,11 +9,7 @@ setup(
     long_description=open("README.md").read(),
     author="Felix Richter",
     author_email="github@krebsco.de",
-    install_requires=[
-        "requests",
-        "beautifulsoup4",
-        "docopt"
-    ],
+    install_requires=["requests", "beautifulsoup4", "docopt"],
     entry_points={"console_scripts": ["hydra-check = hydracheck.cli:main"]},
     classifiers=[
         "Intended Audience :: Human",
