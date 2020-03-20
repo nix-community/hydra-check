@@ -9,6 +9,9 @@ buildPythonPackage {
     requests
     beautifulsoup4
   ];
+  postUnpack = ''
+    echo -e "\x1b[32m## build on ${pkgs.lib.version} \x1b[0m"
+  '';
   checkInputs = [ black mypy jq flake8 ];
   checkPhase = ''
     echo -e "\x1b[32m## run black\x1b[0m"
