@@ -9,5 +9,13 @@ buildPythonPackage {
     requests
     beautifulsoup4
   ];
-  checkInputs = [ black jq ];
+  checkInputs = [ black mypy jq flake8 ];
+  checkPhase = ''
+    echo -e "\x1b[32m## run black\x1b[0m"
+    LC_ALL=en_US.utf-8 black --check .
+    echo -e "\x1b[32m## run flake8\x1b[0m"
+    flake8 hydracheck
+    echo -e "\x1b[32m## run mypy\x1b[0m"
+    mypy hydracheck
+  '';
 }
