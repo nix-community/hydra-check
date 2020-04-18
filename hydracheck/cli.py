@@ -8,9 +8,11 @@ options:
     --channel=CHAN       Channel to check packages for [Default: unstable]
 
 Other channels can be:
-    master
     unstable (Default)
-    19.03 19.09 20.03
+    master
+    19.03
+    19.09
+    20.03
     nixos/release-19.09
 
 
