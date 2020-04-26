@@ -8,13 +8,16 @@ options:
     --channel=CHAN       Channel to check packages for [Default: unstable]
 
 Other channels can be:
-    unstable (Default)
     master
-    19.03
-    19.09
-    20.03
+    unstable (nixpkgs-unstable) (Default)
+    nixos/trunk-combined (nixos-unstable)
     nixos/release-19.09
+    19.09 (alias for nixos/release-19.09)
+    19.03
+    20.03
 
+    Other channel names can be constructed with `nixos/` followed by a branch
+    name from: https://hydra.nixos.org/project/nixos
 
 """
 from bs4 import BeautifulSoup
