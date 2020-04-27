@@ -8,13 +8,18 @@ options:
     --channel=CHAN       Channel to check packages for [Default: unstable]
 
 Other channels can be:
-    unstable (Default)
-    master
-    19.03
-    19.09
-    20.03
-    nixos/release-19.09
+    unstable  - alias for nixos/trunk-combined (Default)
+    master    - alias for nixpkgs/trunk
+    staging   - alias for nixos/staging
+    19.03     - alias for nixos/release-19.03
+    19.09     - alias for nixos/release-19.03
+    20.03     - alias for nixos/release-19.03
+    nixpkgs/nixpkgs-20.03-darwin    - verbatim jobset name
 
+Jobset names can be constructed with the project name (e.g. `nixos/` or `nixpkgs/`)
+followed by a branch name. The available jobsets can be found at:
+* https://hydra.nixos.org/project/nixos
+* https://hydra.nixos.org/project/nixpkgs
 
 """
 from bs4 import BeautifulSoup
