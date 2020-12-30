@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="hydra-check",
     description="check hydra for the build status of a package",
-    version="1.1.1",
+    version="1.2.0",
     packages=["hydracheck"],
     license="MIT",
     long_description=open("README.md").read(),
