@@ -25,8 +25,12 @@ followed by a branch name. The available jobsets can be found at:
 from bs4 import BeautifulSoup
 import requests
 import json
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Union
+
 from sys import exit
+
+# TODO: use TypedDict
+BuildStatus = Dict[str, Union[str, bool]]
 
 
 # guess functions are intended to be fast without external queries
@@ -75,8 +79,18 @@ def fetch_data(ident: str) -> str:
     return resp.text
 
 
-def parse_build_html(data: str) -> Iterator[Dict[str, str]]:
+def parse_build_html(data: str) -> Iterator[BuildStatus]:
     doc = BeautifulSoup(data, features="html.parser")
+    if not doc.find("tbody"):
+        # Either the package was not evaluated (due to being unfree)
+        # or the package does not exist
+        alert_text = (
+            doc.find("div", {"class": "alert"}).text.replace("\n", " ")
+            or "Unknown Hydra Error, check the package with --url to find out what went wrong"
+        )
+        yield {"icon": "⚠", "success": False, "evals": False, "status": alert_text}
+        return
+
     for row in doc.find("tbody").find_all("tr"):
         try:
             status, build, timestamp, name, arch = row.find_all("td")
@@ -102,14 +116,18 @@ def parse_build_html(data: str) -> Iterator[Dict[str, str]]:
             "build_url": build_url,
             "name": name,
             "arch": arch,
+            "evals": True,
         }
 
 
-def print_build(build: Dict[str, str]) -> None:
-    extra = "" if build["success"] else f" ({build['status']})"
-    print(
-        f"{build['icon']}{extra} {build['name']} from {build['timestamp'].split('T')[0]} - {build['build_url']}"
-    )
+def print_buildreport(build: BuildStatus) -> None:
+    if build["evals"]:
+        extra = "" if build["success"] else f" ({build['status']})"
+        print(
+            f"{build['icon']}{extra} {build['name']} from {str(build['timestamp']).split('T')[0]} - {build['build_url']}"
+        )
+    else:
+        print(f"{build['icon']} {build['status']}")
 
 
 def main() -> None:
@@ -139,12 +157,12 @@ def main() -> None:
         if not as_json:
             latest = builds[0]
             print(f"Build Status for {package_name} on {channel}")
-            print_build(latest)
-            if not latest["success"] and not args["--short"]:
+            print_buildreport(latest)
+            if not latest["success"] and latest["evals"] and not args["--short"]:
                 print()
                 print("Last Builds:")
                 for build in builds[1:]:
-                    print_build(build)
+                    print_buildreport(build)
     if as_json:
         print(json.dumps(all_builds))
 
