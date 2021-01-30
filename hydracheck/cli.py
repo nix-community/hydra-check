@@ -72,7 +72,7 @@ def fetch_data(ident: str) -> str:
     # https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux
     # https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
     url = get_url(ident)
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=20)
     if resp.status_code == 404:
         print(f"package {ident} not found at url {url}")
         exit(1)
