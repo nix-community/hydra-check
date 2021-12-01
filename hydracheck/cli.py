@@ -12,8 +12,8 @@ Other channels can be:
     master    - alias for nixpkgs/trunk
     staging   - alias for nixos/staging
     19.03     - alias for nixos/release-19.03
-    19.09     - alias for nixos/release-19.03
-    20.03     - alias for nixos/release-19.03
+    19.09     - alias for nixos/release-19.09
+    20.03     - alias for nixos/release-20.03
     nixpkgs/nixpkgs-20.03-darwin    - verbatim jobset name
 
 Jobset names can be constructed with the project name (e.g. `nixos/` or `nixpkgs/`)
