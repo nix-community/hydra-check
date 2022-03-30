@@ -1,6 +1,11 @@
-__pycache__/
+__pycache__
+secrets.py
+runs
+.ipynb_*
+*.csv
+.direnv
 *.pyc
 /.mypy_cache/
 /*.egg-info/
 /.direnv/
-result
+/**/result*
