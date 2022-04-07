@@ -20,7 +20,9 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ poetry2nix.overlay ];
+          overlays = [
+            poetry2nix.overlay
+          ];
         };
         python = pkgs.python310;
         packageName = "hydra-check";
@@ -35,7 +37,7 @@
             nativeBuildInputs = with python.pkgs; [ poetry-core ];
             propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 docopt ];
             src = ./.;
-            checkInputs = with pkgs; [ mypy ];
+            checkInputs = with pkgs; [ python.pkgs.mypy ];
             checkPhase = ''
               export MYPYPATH=$PWD/src
               mypy src/hydra_check
@@ -48,7 +50,6 @@
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
               pyright
-              mypy
               (pkgs.poetry.override { python = python; })
               (pkgs.poetry2nix.mkPoetryEnv {
                 inherit python;
@@ -63,6 +64,7 @@
             ] ++ (with python.pkgs; [
               black
               pylint
+              mypy
             ]);
             shellHook = ''
               export MYPYPATH=$PWD/src
