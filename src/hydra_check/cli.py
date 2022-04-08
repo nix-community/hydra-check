@@ -1,33 +1,11 @@
-"""usage: hydra-check [options] PACKAGES...
-
-options:
-    --arch=SYSTEM        system architecture to check [default: x86_64-linux]
-    --json               write builds in machine-readable format
-    --short              write only the latest build even if last build failed
-    --url                only print the hydra build url, then exit
-    --channel=CHAN       Channel to check packages for [Default: unstable]
-
-Other channels can be:
-    unstable  - alias for nixos/trunk-combined (Default)
-    master    - alias for nixpkgs/trunk
-    staging   - alias for nixos/staging
-    19.03     - alias for nixos/release-19.03
-    19.09     - alias for nixos/release-19.09
-    20.03     - alias for nixos/release-20.03
-    nixpkgs/nixpkgs-20.03-darwin    - verbatim jobset name
-
-Jobset names can be constructed with the project name (e.g. `nixos/` or `nixpkgs/`)
-followed by a branch name. The available jobsets can be found at:
-* https://hydra.nixos.org/project/nixos
-* https://hydra.nixos.org/project/nixpkgs
-
-"""
-from bs4 import BeautifulSoup
-import requests
 import json
+from sys import exit as sysexit
 from typing import Dict, Iterator, Union
 
-from sys import exit
+import requests
+from bs4 import BeautifulSoup
+
+from hydra_check.arguments import process_args
 
 # TODO: use TypedDict
 BuildStatus = Dict[str, Union[str, bool]]
@@ -36,18 +14,18 @@ BuildStatus = Dict[str, Union[str, bool]]
 # guess functions are intended to be fast without external queries
 def guess_jobset(channel: str) -> str:
     # TODO guess the latest stable channel
-    if channel == "master":
-        return "nixpkgs/trunk"
-    elif channel == "unstable":
-        return "nixos/trunk-combined"
-    elif channel == "staging":
-        return "nixos/staging"
-    elif channel[0].isdigit():
-        # 19.09, 20.03 etc
-        return f"nixos/release-{channel}"
-    else:
-        # we asume that the user knows the jobset name ( nixos/release-19.09 )
-        return channel
+    match channel:
+        case "master":
+            return "nixpkgs/trunk"
+        case "unstable":
+            return "nixos/trunk-combined"
+        case "staging":
+            return "nixos/staging"
+        case _:
+            if channel[0].isdigit():
+                # 19.09, 20.03 etc
+                return f"nixos/release-{channel}"
+            return channel
 
 
 def guess_packagename(package: str, arch: str, is_channel: bool) -> str:
@@ -55,11 +33,12 @@ def guess_packagename(package: str, arch: str, is_channel: bool) -> str:
     if package.startswith("nixpkgs.") or package.startswith("nixos."):
         # we assume user knows the full package name
         return f"{package}.{arch}"
-    elif is_channel:
+
+    if is_channel:
         # we simply guess, that the user searches for a package and not a test
         return f"nixpkgs.{package}.{arch}"
-    else:
-        return f"{package}.{arch}"
+
+    return f"{package}.{arch}"
 
 
 def get_url(ident: str) -> str:
@@ -75,7 +54,7 @@ def fetch_data(ident: str) -> str:
     resp = requests.get(url, timeout=20)
     if resp.status_code == 404:
         print(f"package {ident} not found at url {url}")
-        exit(1)
+        sysexit(1)
     return resp.text
 
 
@@ -97,8 +76,7 @@ def parse_build_html(data: str) -> Iterator[BuildStatus]:
         except ValueError:
             if row.find("td").find("a")["href"].endswith("/all"):
                 continue
-            else:
-                raise
+            raise
         status = status.find("img")["title"]
         build_id = build.find("a").text
         build_url = build.find("a")["href"]
@@ -124,27 +102,27 @@ def print_buildreport(build: BuildStatus) -> None:
     if build["evals"]:
         extra = "" if build["success"] else f" ({build['status']})"
         print(
-            f"{build['icon']}{extra} {build['name']} from {str(build['timestamp']).split('T')[0]} - {build['build_url']}"
+            f"{build['icon']}{extra} {build['name']} from "
+            f"{str(build['timestamp']).split('T', maxsplit=1)[0]} - {build['build_url']}",
         )
     else:
         print(f"{build['icon']} {build['status']}")
 
 
 def main() -> None:
-    from docopt import docopt
 
-    args = docopt(__doc__)
-    channel = args["--channel"]
-    packages = args["PACKAGES"]
-    arch = args["--arch"]
-    only_url = args["--url"]
+    args = process_args()
+
+    channel = args.channel
+    packages: list[str] = args.PACKAGES
+    only_url = args.url
     jobset = guess_jobset(channel)
     is_channel = jobset.startswith("nixos/")
-    as_json = args["--json"]
+    as_json = args.json
     all_builds = {}
 
     for package in packages:
-        package_name = guess_packagename(package, arch, is_channel)
+        package_name = guess_packagename(package, args.arch, is_channel)
         ident = f"{jobset}/{package_name}"
         if only_url:
             print(get_url(ident))
@@ -158,7 +136,7 @@ def main() -> None:
             latest = builds[0]
             print(f"Build Status for {package_name} on {channel}")
             print_buildreport(latest)
-            if not latest["success"] and latest["evals"] and not args["--short"]:
+            if not latest["success"] and latest["evals"] and not args.short:
                 print()
                 print("Last Builds:")
                 for build in builds[1:]:

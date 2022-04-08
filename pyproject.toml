@@ -10,7 +10,7 @@ authors = ["Felix Richter <github@krebsco.de>"]
 hydra-check = 'hydra_check.cli:main'
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 requests = "^2.2"
 beautifulsoup4 = "^4.1"
 docopt = "^0.6"
@@ -42,7 +42,7 @@ ignore_missing_imports = true
 
 
 [tool.black]
-line-length = 88
+line-length = 120
 target_version = ['py310']
 
 [tool.pylint.master]
@@ -50,4 +50,15 @@ init-hook = "import sys; sys.path.append('src')"
 
 [tool.pylint.FORMAT]
 output-format = "colorized"
-max-line-length = 88
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = [
+    # Many functions (e.g. callbacks) will naturally have unused arguments.
+    "unused-argument",
+
+    # Disable failure for TODO items in the codebase (code will always have TODOs).
+    "fixme",
+
+    "missing-docstring"
+]
