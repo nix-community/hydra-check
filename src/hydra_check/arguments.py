@@ -23,7 +23,9 @@ def process_args() -> argparse.Namespace:
             )
     parser.add_argument(
         "PACKAGES",
-        action="append",
+        action="extend",
+        nargs="+",
+        type=str,
     )
     parser.add_argument(
         "--url",
