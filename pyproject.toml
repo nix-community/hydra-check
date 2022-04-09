@@ -17,18 +17,18 @@ docopt = "^0.6"
 
 [tool.poetry.dev-dependencies]
 types-requests = "^2.27.15"
-types-beautifulsoup4 = "^4.10.16"
+types-beautifulsoup4 = "^4.10"
 types-docopt = "^0.6.6"
+pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
+coverage = {extras = ["toml"], version = "^6.2"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[mypy.mypy]
-warn_redundant_casts = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-no_implicit_optional = true
+[tool.mypy]
+strict = true
 
 # for the nixpkgs package as some of these types aren't in nixpkgs
 [[tool.mypy.overrides]]
@@ -62,3 +62,18 @@ disable = [
 
     "missing-docstring"
 ]
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["hydra_check"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.pytest.ini_options]
+# tests, src so that the nix shell doesn't have to be restarted
+testpaths = ["tests", "src"]
+addopts = "-sv"

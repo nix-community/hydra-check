@@ -3,7 +3,7 @@ from sys import exit as sysexit
 from typing import Dict, Iterator, Union
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, element
 
 from hydra_check.arguments import process_args
 
@@ -63,39 +63,43 @@ def parse_build_html(data: str) -> Iterator[BuildStatus]:
     if not doc.find("tbody"):
         # Either the package was not evaluated (due to being unfree)
         # or the package does not exist
-        alert_text = (
-            doc.find("div", {"class": "alert"}).text.replace("\n", " ")
-            or "Unknown Hydra Error, check the package with --url to find out what went wrong"
-        )
+        alert_text = ""
+        if result := doc.find("div", {"class": "alert"}):
+            alert_text = result.text.replace("\n", " ")
+        else:
+            alert_text = "Unknown Hydra Error, check the package with --url to find out what went wrong"
+
         yield {"icon": "⚠", "success": False, "evals": False, "status": alert_text}
         return
 
-    for row in doc.find("tbody").find_all("tr"):
-        try:
-            status, build, timestamp, name, arch = row.find_all("td")
-        except ValueError:
-            if row.find("td").find("a")["href"].endswith("/all"):
-                continue
-            raise
-        status = status.find("img")["title"]
-        build_id = build.find("a").text
-        build_url = build.find("a")["href"]
-        timestamp = timestamp.find("time")["datetime"]
-        name = name.text
-        arch = arch.find("tt").text
-        success = status == "Succeeded"
-        icon = "✔" if success else "✖"
-        yield {
-            "icon": icon,
-            "success": success,
-            "status": status,
-            "timestamp": timestamp,
-            "build_id": build_id,
-            "build_url": build_url,
-            "name": name,
-            "arch": arch,
-            "evals": True,
-        }
+    if tbody := doc.find("tbody"):
+        if isinstance(tbody, element.Tag):
+            for row in tbody.find_all("tr"):
+                try:
+                    status, build, timestamp, name, arch = row.find_all("td")
+                except ValueError:
+                    if row.find("td").find("a")["href"].endswith("/all"):
+                        continue
+                    raise
+                status = status.find("img")["title"]
+                build_id = build.find("a").text
+                build_url = build.find("a")["href"]
+                timestamp = timestamp.find("time")["datetime"]
+                name = name.text
+                arch = arch.find("tt").text
+                success = status == "Succeeded"
+                icon = "✔" if success else "✖"
+                yield {
+                    "icon": icon,
+                    "success": success,
+                    "status": status,
+                    "timestamp": timestamp,
+                    "build_id": build_id,
+                    "build_url": build_url,
+                    "name": name,
+                    "arch": arch,
+                    "evals": True,
+                }
 
 
 def print_buildreport(build: BuildStatus) -> None:

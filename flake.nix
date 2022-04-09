@@ -37,10 +37,10 @@
             nativeBuildInputs = with python.pkgs; [ poetry-core ];
             propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 docopt ];
             src = ./.;
-            checkInputs = with pkgs; [ python.pkgs.mypy ];
+            checkInputs = with pkgs; [ python310.pkgs.mypy ];
             checkPhase = ''
-              export MYPYPATH=$PWD/src
-              mypy src/hydra_check
+              #export MYPYPATH=$PWD/src
+              #mypy --strict .
             '';
           };
           default = hydra-check;
