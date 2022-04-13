@@ -4,6 +4,7 @@ from typing import Dict, Iterator, Union
 
 import requests
 from bs4 import BeautifulSoup, element
+from colorama import Fore
 
 from hydra_check.arguments import process_args
 
@@ -103,6 +104,13 @@ def parse_build_html(data: str) -> Iterator[BuildStatus]:
 
 
 def print_buildreport(build: BuildStatus) -> None:
+    match build["icon"]:
+        case "✖":
+            print(Fore.RED, end="")
+        case "⚠":
+            print(Fore.YELLOW, end="")
+        case "✔":
+            print(Fore.GREEN, end="")
     if build["evals"]:
         extra = "" if build["success"] else f" ({build['status']})"
         print(
@@ -138,6 +146,13 @@ def main() -> None:
 
         if not as_json:
             latest = builds[0]
+            match latest["icon"]:
+                case "✖":
+                    print(Fore.RED, end="")
+                case "⚠":
+                    print(Fore.YELLOW, end="")
+                case "✔":
+                    print(Fore.GREEN, end="")
             print(f"Build Status for {package_name} on {channel}")
             print_buildreport(latest)
             if not latest["success"] and latest["evals"] and not args.short:

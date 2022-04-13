@@ -58,7 +58,7 @@ unicode_backport = ["unicodedata2"]
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -229,6 +229,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "types-colorama"
+version = "0.4.11"
+description = "Typing stubs for colorama"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "types-docopt"
 version = "0.6.6"
 description = "Typing stubs for docopt"
@@ -271,7 +279,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "054ab9a6f239159c9c108ece9b81910a776cfdedc287a3e38aa01c3fd1aedea4"
+content-hash = "414a09a39dd08f161eac38589759bb4571214b4951c5611fd9039df46326a4e5"
 
 [metadata.files]
 atomicwrites = [
@@ -395,6 +403,10 @@ tomli = [
 types-beautifulsoup4 = [
     {file = "types-beautifulsoup4-4.10.16.tar.gz", hash = "sha256:b48fa153ddfeb4c338f83ac8510de0085cf6e1a221b4adf9e52d9d6349205fda"},
     {file = "types_beautifulsoup4-4.10.16-py3-none-any.whl", hash = "sha256:903d20430df659e98ea5063c013b9219d91861ecef145a0ac63061f0aad63d7b"},
+]
+types-colorama = [
+    {file = "types-colorama-0.4.11.tar.gz", hash = "sha256:34057d53a28923555ca2b4ec3d5b007f67c4d6db145a1d6fecda5aaff4adc064"},
+    {file = "types_colorama-0.4.11-py3-none-any.whl", hash = "sha256:3f4e67bceb4d35db94eaa8dafd0d4e668bc329b93f8e95e63cdcb76b4085e71e"},
 ]
 types-docopt = [
     {file = "types-docopt-0.6.6.tar.gz", hash = "sha256:49047aada5ba4c2b5a26d1574b5f77ec1e6cab1947518998a4b4cfa5209e640b"},

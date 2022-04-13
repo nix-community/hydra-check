@@ -14,6 +14,7 @@ python = "^3.10"
 requests = "^2.2"
 beautifulsoup4 = "^4.1"
 docopt = "^0.6"
+colorama = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
 types-requests = "^2.27.15"
@@ -22,6 +23,7 @@ types-docopt = "^0.6.6"
 pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
 coverage = {extras = ["toml"], version = "^6.2"}
+types-colorama = "^0.4.11"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -36,7 +38,8 @@ module = [
     "setuptools",
     "bs4",
     "docopt",
-    "requests"
+    "requests",
+    "termcolor",
 ]
 ignore_missing_imports = true
 
