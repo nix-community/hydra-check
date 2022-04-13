@@ -35,7 +35,7 @@
             version = packageVersion;
             format = "pyproject";
             nativeBuildInputs = with python.pkgs; [ poetry-core ];
-            propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 docopt colorama ];
+            propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 colorama ];
             src = ./.;
             checkInputs = with pkgs; [ python310.pkgs.mypy ];
             checkPhase = ''

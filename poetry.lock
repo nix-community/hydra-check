@@ -77,14 +77,6 @@ tomli = {version = "*", optional = true, markers = "extra == \"toml\""}
 toml = ["tomli"]
 
 [[package]]
-name = "docopt"
-version = "0.6.2"
-description = "Pythonic argument parser, that will make you smile"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "idna"
 version = "3.3"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -237,14 +229,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "types-docopt"
-version = "0.6.6"
-description = "Typing stubs for docopt"
-category = "dev"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "types-requests"
 version = "2.27.15"
 description = "Typing stubs for requests"
@@ -279,7 +263,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "414a09a39dd08f161eac38589759bb4571214b4951c5611fd9039df46326a4e5"
+content-hash = "48f2b313cda47524c793ae0dc26286f465605e73443900da9b1ec7f355914da9"
 
 [metadata.files]
 atomicwrites = [
@@ -349,9 +333,6 @@ coverage = [
     {file = "coverage-6.3.2-pp36.pp37.pp38-none-any.whl", hash = "sha256:18d520c6860515a771708937d2f78f63cc47ab3b80cb78e86573b0a760161faf"},
     {file = "coverage-6.3.2.tar.gz", hash = "sha256:03e2a7826086b91ef345ff18742ee9fc47a6839ccd517061ef8fa1976e652ce9"},
 ]
-docopt = [
-    {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
-]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
     {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
@@ -407,10 +388,6 @@ types-beautifulsoup4 = [
 types-colorama = [
     {file = "types-colorama-0.4.11.tar.gz", hash = "sha256:34057d53a28923555ca2b4ec3d5b007f67c4d6db145a1d6fecda5aaff4adc064"},
     {file = "types_colorama-0.4.11-py3-none-any.whl", hash = "sha256:3f4e67bceb4d35db94eaa8dafd0d4e668bc329b93f8e95e63cdcb76b4085e71e"},
-]
-types-docopt = [
-    {file = "types-docopt-0.6.6.tar.gz", hash = "sha256:49047aada5ba4c2b5a26d1574b5f77ec1e6cab1947518998a4b4cfa5209e640b"},
-    {file = "types_docopt-0.6.6-py3-none-any.whl", hash = "sha256:1691269f5dc2c61fbd8c74b0cdf8905561fef354729171b503a2853cfe992061"},
 ]
 types-requests = [
     {file = "types-requests-2.27.15.tar.gz", hash = "sha256:2d371183c535208d2cc8fe7473d9b49c344c7077eb70302eb708638fb86086a8"},
