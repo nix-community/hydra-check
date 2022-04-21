@@ -1,4 +1,5 @@
 import json
+import logging
 from sys import exit as sysexit
 from typing import Dict, Iterator, Union
 
@@ -122,6 +123,7 @@ def print_buildreport(build: BuildStatus) -> None:
 
 
 def main() -> None:
+    logging.basicConfig(format='%(levelname)s: %(message)s')
 
     args = process_args()
 
@@ -134,6 +136,9 @@ def main() -> None:
     all_builds = {}
 
     for package in packages:
+        if package.startswith("python3Packages") or package.startswith("python3.pkgs"):
+            logging.error("instead of '%s', you want python3XPackages... (replace X)", package)
+            continue
         package_name = guess_packagename(package, args.arch, is_channel)
         ident = f"{jobset}/{package_name}"
         if only_url:
