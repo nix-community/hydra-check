@@ -26,7 +26,8 @@
         };
         python = pkgs.python310;
         packageName = "hydra-check";
-        packageVersion = "1.3.2";
+        # update the pyproject.toml too
+        packageVersion = "1.3.3";
       in
       {
         packages = rec {
