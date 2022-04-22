@@ -26,7 +26,7 @@
         };
         python = pkgs.python310;
         packageName = "hydra-check";
-        packageVersion = "1.2.0";
+        packageVersion = "1.3.2";
       in
       {
         packages = rec {
