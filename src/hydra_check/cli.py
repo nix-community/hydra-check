@@ -5,7 +5,7 @@ from typing import Dict, Iterator, Union
 
 import requests
 from bs4 import BeautifulSoup, element
-from colorama import Fore
+from colorama import Fore, Style
 
 from hydra_check.arguments import process_args
 
@@ -158,7 +158,15 @@ def main() -> None:
             continue
 
         resp = fetch_data(ident)
-        builds = list(parse_build_html(resp))
+        try:
+            builds = list(parse_build_html(resp))
+        except:
+            print(Fore.RED, end="")
+            print(f"Error while parsing Hydra status for package {package_name} - please report this issue")
+            print(Style.RESET_ALL, end="")
+
+            continue
+
         all_builds[package] = builds
 
         if not as_json:
