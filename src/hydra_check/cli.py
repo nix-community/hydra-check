@@ -5,7 +5,7 @@ from typing import Dict, Iterator, Union
 
 import requests
 from bs4 import BeautifulSoup, element
-from colorama import Fore
+from colorama import Fore, Style
 
 from hydra_check.arguments import process_args
 
@@ -83,6 +83,18 @@ def parse_build_html(data: str) -> Iterator[BuildStatus]:
                     if row.find("td").find("a")["href"].endswith("/all"):
                         continue
                     raise
+
+                span_status = status.find("span")
+                if span_status is not None:
+                    if span_status.string == "Queued":
+                        alert_text = "No build has been attempted for this package yet (still queued)"
+                    else:
+                        alert_text = f"Unknown Hydra status: {span_status.string}"
+
+                    yield {"icon": "⧖", "success": False, "evals": False, "status": alert_text}
+
+                    continue
+
                 status = status.find("img")["title"]
                 build_id = build.find("a").text
                 build_url = build.find("a")["href"]
@@ -108,7 +120,7 @@ def print_buildreport(build: BuildStatus) -> None:
     match build["icon"]:
         case "✖":
             print(Fore.RED, end="")
-        case "⚠":
+        case "⚠" | "⧖":
             print(Fore.YELLOW, end="")
         case "✔":
             print(Fore.GREEN, end="")
@@ -146,7 +158,15 @@ def main() -> None:
             continue
 
         resp = fetch_data(ident)
-        builds = list(parse_build_html(resp))
+        try:
+            builds = list(parse_build_html(resp))
+        except:
+            print(Fore.RED, end="")
+            print(f"Error while parsing Hydra status for package {package_name} - please report this issue")
+            print(Style.RESET_ALL, end="")
+
+            continue
+
         all_builds[package] = builds
 
         if not as_json:
@@ -154,7 +174,7 @@ def main() -> None:
             match latest["icon"]:
                 case "✖":
                     print(Fore.RED, end="")
-                case "⚠":
+                case "⚠" | "⧖":
                     print(Fore.YELLOW, end="")
                 case "✔":
                     print(Fore.GREEN, end="")
