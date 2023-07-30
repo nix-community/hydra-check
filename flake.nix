@@ -3,11 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
     flake-utils = { url = "github:numtide/flake-utils"; };
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -15,14 +10,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry2nix, flake-compat }:
+  outputs = { self, nixpkgs, flake-utils, flake-compat, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            poetry2nix.overlay
-          ];
+          overlays = [ ];
         };
         python = pkgs.python310;
         packageName = "hydra-check";
@@ -51,7 +44,7 @@
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
               pyright
-              (pkgs.poetry.override { python = python; })
+              poetry
               (pkgs.poetry2nix.mkPoetryEnv {
                 inherit python;
                 projectDir = ./.;
