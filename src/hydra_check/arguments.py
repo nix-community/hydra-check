@@ -52,4 +52,9 @@ def process_args() -> argparse.Namespace:
         default="unstable",
         help="Channel to check packages for",
     )
+    parser.add_argument(
+        "--jobset",
+        default="",
+        help="Jobset to check packages for",
+    )
     return parser.parse_args()

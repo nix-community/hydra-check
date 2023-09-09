@@ -1,6 +1,7 @@
 import json
 import logging
 from sys import exit as sysexit
+import sys
 from typing import Dict, Iterator, Union
 
 import requests
@@ -32,15 +33,18 @@ def guess_jobset(channel: str) -> str:
 
 def guess_packagename(package: str, arch: str, is_channel: bool) -> str:
     # TODO: maybe someone provides the architecture in the package name?
+    if arch != "":
+        arch = f".{arch}"
+
     if package.startswith("nixpkgs.") or package.startswith("nixos."):
         # we assume user knows the full package name
-        return f"{package}.{arch}"
+        return f"{package}{arch}"
 
     if is_channel:
         # we simply guess, that the user searches for a package and not a test
-        return f"nixpkgs.{package}.{arch}"
+        return f"nixpkgs.{package}{arch}"
 
-    return f"{package}.{arch}"
+    return f"{package}{arch}"
 
 
 def get_url(ident: str) -> str:
@@ -142,7 +146,7 @@ def main() -> None:
     channel = args.channel
     packages: list[str] = args.PACKAGES
     only_url = args.url
-    jobset = guess_jobset(channel)
+    jobset = args.jobset or guess_jobset(channel)
     is_channel = jobset.startswith("nixos/")
     as_json = args.json
     all_builds = {}
@@ -169,8 +173,11 @@ def main() -> None:
 
         all_builds[package] = builds
 
-        if not as_json:
-            latest = builds[0]
+        latest = builds[0]
+
+        if as_json:
+            print(json.dumps(all_builds))
+        else:
             match latest["icon"]:
                 case "✖":
                     print(Fore.RED, end="")
@@ -185,8 +192,9 @@ def main() -> None:
                 print("Last Builds:")
                 for build in builds[1:]:
                     print_buildreport(build)
-    if as_json:
-        print(json.dumps(all_builds))
+
+        if not latest["success"]:
+            sys.exit(1)
 
 
 if __name__ == "__main__":
