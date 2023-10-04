@@ -17,17 +17,17 @@ usage: hydra-check [options] PACKAGES...
 ...
 
 $ hydra-check hello
-Build Status for nixpkgs.hello.x86_64-linux on unstable
+Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/trunk-combined
 ✔ hello-2.10 from 2020-03-14 - https://hydra.nixos.org/build/114752982
 
 
 $ hydra-check hello python --channel 19.03
-Build Status for nixpkgs.hello.x86_64-linux on 19.03
+Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/19.03
 ✔ hello-2.10 from 2019-10-14 - https://hydra.nixos.org/build/103243113
-Build Status for nixpkgs.python.x86_64-linux on 19.03
+Build Status for nixpkgs.python.x86_64-linux on jobset nixos/19.03
 ✔ python-2.7.17 from 2020-01-14 - https://hydra.nixos.org/build/110523905
 $ hydra-check nixos.tests.installer.simpleUefiGrub --channel 19.09 --arch aarch64-linux
-Build Status for nixos.tests.installer.simpleUefiGrub.aarch64-linux on 19.09
+Build Status for nixos.tests.installer.simpleUefiGrub.aarch64-linux on jobset nixos/19.09
 ✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-19 - https://hydra.nixos.org/build/115139363
 
 Last Builds:
@@ -42,7 +42,7 @@ Last Builds:
 
 
 $ hydra-check ugarit --channel 19.09 --short
-Build Status for nixpkgs.ugarit.x86_64-linux on 19.09
+Build Status for nixpkgs.ugarit.x86_64-linux on jobset nixos/19.09
 ✖ (Dependency failed) chicken-ugarit-2.0 from 2020-02-23 - https://hydra.nixos.org/build/108216732
 
 
