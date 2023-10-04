@@ -15,13 +15,16 @@ BuildStatus = Dict[str, Union[str, bool]]
 
 
 # guess functions are intended to be fast without external queries
-def guess_jobset(channel: str) -> str:
+def guess_jobset(channel: str, arch: str) -> str:
     # TODO guess the latest stable channel
     match channel:
         case "master":
             return "nixpkgs/trunk"
         case "unstable":
-            return "nixos/trunk-combined"
+            if arch.endswith("darwin"):
+                return "nixpkgs/trunk"
+            else:
+                return "nixos/trunk-combined"
         case "staging":
             return "nixos/staging"
         case _:
@@ -146,7 +149,7 @@ def main() -> None:
     channel = args.channel
     packages: list[str] = args.PACKAGES
     only_url = args.url
-    jobset = args.jobset or guess_jobset(channel)
+    jobset = args.jobset or guess_jobset(channel, args.arch)
     is_channel = jobset.startswith("nixos/")
     as_json = args.json
     all_builds = {}
