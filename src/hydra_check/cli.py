@@ -185,7 +185,7 @@ def main() -> None:
                     print(Fore.YELLOW, end="")
                 case "✔":
                     print(Fore.GREEN, end="")
-            print(f"Build Status for {package_name} on {channel}")
+            print(f"Build Status for {package_name} on jobset {jobset}")
             print_buildreport(latest)
             if not latest["success"] and latest["evals"] and not args.short:
                 print()
