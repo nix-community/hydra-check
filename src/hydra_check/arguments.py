@@ -13,7 +13,11 @@ def process_args() -> argparse.Namespace:
                     19.03     - alias for nixos/release-19.03
                     19.09     - alias for nixos/release-19.09
                     20.03     - alias for nixos/release-20.03
-                    nixpkgs/nixpkgs-20.03-darwin    - verbatim jobset name
+
+                Usually using the above as --channel arguments, should fit most usages.
+                However, you can use a verbatim jobset name such as:
+
+                    nixpkgs/nixpkgs-20.03-darwin
 
                 Jobset names can be constructed with the project name (e.g. `nixos/` or `nixpkgs/`)
                 followed by a branch name. The available jobsets can be found at:
