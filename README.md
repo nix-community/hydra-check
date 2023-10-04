@@ -19,6 +19,9 @@ usage: hydra-check [options] PACKAGES...
 $ hydra-check hello
 Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/trunk-combined
 ✔ hello-2.10 from 2020-03-14 - https://hydra.nixos.org/build/114752982
+$ hydra-check hello --arch x86_64-darwin
+Build Status for hello.x86_64-darwin on jobset nixpkgs/trunk
+✔ hello-2.12.1 from 2023-09-28 - https://hydra.nixos.org/build/236635446
 
 
 $ hydra-check hello python --channel 19.03

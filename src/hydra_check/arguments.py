@@ -7,8 +7,8 @@ def process_args() -> argparse.Namespace:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=textwrap.dedent('''\
                 Other channels can be:
-                    unstable  - alias for nixos/trunk-combined (Default)
-                    master    - alias for nixpkgs/trunk
+                    unstable  - alias for nixos/trunk-combined (Default for Linux architectures)
+                    master    - alias for nixpkgs/trunk (Default for Darwin architectures)
                     staging   - alias for nixos/staging
                     19.03     - alias for nixos/release-19.03
                     19.09     - alias for nixos/release-19.09
@@ -53,6 +53,7 @@ def process_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--channel",
+        # Sort of changes to "master" when arch is darwin
         default="unstable",
         help="Channel to check packages for",
     )
