@@ -26,7 +26,7 @@
         poetry2nix = self.inputs.poetry2nix.lib.mkPoetry2Nix {
           inherit pkgs;
         };
-        python = pkgs.python311;
+        python = pkgs.python312;
         packageName = "hydra-check";
         # update the pyproject.toml too
         packageVersion = "1.3.5";
