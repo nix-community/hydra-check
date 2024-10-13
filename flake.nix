@@ -39,7 +39,10 @@
             format = "pyproject";
             nativeBuildInputs = with python.pkgs; [ poetry-core ];
             propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 colorama ];
-            src = ./.;
+            src = builtins.path {
+              name = "hydra-check-source";
+              path = ./.;
+            };
             checkInputs = with python.pkgs; [ mypy ];
             checkPhase = ''
               #export MYPYPATH=$PWD/src
