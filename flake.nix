@@ -1,5 +1,5 @@
 {
-  description = "Python application managed with poetry2nix";
+  description = "scrape hydra for the build status of a package";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -8,75 +8,31 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.systems.follows = "flake-utils/systems";
-    };
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ ];
-        };
-        poetry2nix = self.inputs.poetry2nix.lib.mkPoetry2Nix {
-          inherit pkgs;
-        };
-        python = pkgs.python312;
-        packageName = "hydra-check";
-        # update the pyproject.toml too
-        packageVersion = "1.3.5";
+        pkgs = nixpkgs.legacyPackages.${system};
       in
       {
         packages = {
-          hydra-check = python.pkgs.buildPythonApplication {
-            pname = packageName;
-            version = packageVersion;
-            format = "pyproject";
-            nativeBuildInputs = with python.pkgs; [ poetry-core ];
-            propagatedBuildInputs = with python.pkgs; [ requests beautifulsoup4 colorama ];
-            src = builtins.path {
-              name = "hydra-check-source";
-              path = ./.;
-            };
-            checkInputs = with python.pkgs; [ mypy ];
-            checkPhase = ''
-              #export MYPYPATH=$PWD/src
-              #mypy --strict .
-            '';
-          };
+          hydra-check = pkgs.callPackage ./package.nix { };
           default = self.packages.${system}.hydra-check;
         };
 
-        devShells = {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              pyright
-              poetry
-              (poetry2nix.mkPoetryEnv {
-                inherit python;
-                projectDir = ./.;
-                overrides = poetry2nix.overrides.withDefaults (self: super: { });
-                editablePackageSources = {
-                  hydra-check = ./src;
-                };
-                extraPackages = (ps: with ps; [
-                ]);
-              })
-            ] ++ (with python.pkgs; [
-              black
-              pylint
-              mypy
-            ]);
-            shellHook = ''
-              export MYPYPATH=$PWD/src
-            '';
-          };
-        };
+        devShells.default = self.packages.${system}.hydra-check.overrideAttrs ({ nativeBuildInputs, ... }: {
+          nativeBuildInputs = with pkgs.buildPackages; [
+            cargo # with shell completions, instead of cargo-auditable
+            cargo-insta # for updating insta snapshots
+          ] ++ nativeBuildInputs;
 
+          env = with pkgs.buildPackages; {
+            # for developments, e.g. symbol lookup in std library
+            RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
+            # for debugging
+            RUST_LIB_BACKTRACE = "1";
+          };
+        });
       });
 }

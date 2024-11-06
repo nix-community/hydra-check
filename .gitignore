@@ -1,3 +1,6 @@
+# configured by each user
+.envrc
+
 secrets.py
 runs
 .ipynb_*
