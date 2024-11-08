@@ -1,4 +1,5 @@
-use clap::{arg, command, Parser};
+use clap::{arg, command, value_parser, CommandFactory, Parser};
+use clap_complete::Shell;
 use flexi_logger::Logger;
 use log::{debug, error, warn};
 use regex::Regex;
@@ -74,6 +75,10 @@ pub struct HydraCheckCli {
     /// Print more debugging information
     #[arg(short, long)]
     verbose: bool,
+
+    /// Print generated completions for a given shell
+    #[arg(long = "shell-completion", exclusive = true, value_parser = value_parser!(Shell))]
+    shell: Option<Shell>,
 }
 
 /// Resolved command line arguments, with all options normalized and unwrapped
@@ -229,14 +234,21 @@ impl HydraCheckCli {
         evals
     }
 
-    /// Parses the command line flags and provides an educated guess
-    /// for the missing arguments. Also sets the log level.
+    /// Parses the command line flags and calls [`Self::guess_all_args()`].
+    /// Also prints shell completions if asked for.
     pub(crate) fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
         let args = Self::parse();
+        if let Some(shell) = args.shell {
+            // generate shell completions
+            let mut cmd = Self::command();
+            let bin_name = cmd.get_name().to_string();
+            clap_complete::generate(shell, &mut cmd, bin_name, &mut std::io::stdout());
+            std::process::exit(0);
+        }
         args.guess_all_args()
     }
 
-    /// Guesses all relevant command line arguments.
+    /// Guesses all relevant command line arguments and sets the log level.
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
         let log_level = match args.verbose {

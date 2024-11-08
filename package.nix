@@ -5,6 +5,7 @@
   openssl,
   stdenv,
   darwin,
+  installShellFiles,
 }:
 
 rustPlatform.buildRustPackage {
@@ -25,6 +26,7 @@ rustPlatform.buildRustPackage {
 
   nativeBuildInputs = [
     pkg-config
+    installShellFiles
   ];
 
   buildInputs =
@@ -35,6 +37,13 @@ rustPlatform.buildRustPackage {
       darwin.apple_sdk.frameworks.Security
       darwin.apple_sdk.frameworks.SystemConfiguration
     ];
+
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd hydra-check \
+      --bash <($out/bin/hydra-check --shell-completion bash) \
+      --fish <($out/bin/hydra-check --shell-completion fish) \
+      --zsh <($out/bin/hydra-check --shell-completion zsh)
+  '';
 
   meta = {
     description = "scrape hydra for the build status of a package";
