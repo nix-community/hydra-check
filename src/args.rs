@@ -242,7 +242,30 @@ impl HydraCheckCli {
             // generate shell completions
             let mut cmd = Self::command();
             let bin_name = cmd.get_name().to_string();
-            clap_complete::generate(shell, &mut cmd, bin_name, &mut std::io::stdout());
+            let mut buf = Vec::new();
+            clap_complete::generate(shell, &mut cmd, bin_name, &mut buf);
+            let completion_text = String::from_utf8(buf)?;
+            print!(
+                "{}",
+                match shell {
+                    // hack to provide channel completions for zsh
+                    Shell::Zsh => {
+                        let channel_options = format!(
+                            "CHANNEL:({})",
+                            [
+                                "nixpkgs-unstable",
+                                "nixos-unstable",
+                                "nixos-unstable-small",
+                                "staging-next",
+                                "stable"
+                            ]
+                            .join(" ")
+                        );
+                        completion_text.replace("CHANNEL:_default", &channel_options)
+                    }
+                    _ => completion_text,
+                }
+            );
             std::process::exit(0);
         }
         args.guess_all_args()
