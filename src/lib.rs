@@ -21,11 +21,17 @@ use comfy_table::Table;
 use scraper::{ElementRef, Html};
 use std::time::Duration;
 
-trait FormatVecColored {
+/// Trait for a single `Status` entry from a Hydra report.
+/// This usually corresponds to a single line in the tables from Hydra's
+/// web interface, such as a single [`BuildStatus`].
+trait ShowHydraStatus {
     fn format_as_vec(&self) -> Vec<ColoredString>;
 }
 
-trait FetchHydra: Clone {
+/// Trait for all kinds of Hydra `Report`.
+/// This usually corresponds to a summary page from Hydra's web interface,
+/// such as <https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux>.
+trait FetchHydraReport: Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
@@ -66,7 +72,7 @@ trait FetchHydra: Clone {
         }
     }
 
-    fn format_table<T: FormatVecColored>(&self, short: bool, entries: &Vec<T>) -> String {
+    fn format_table<T: ShowHydraStatus>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
         // .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);

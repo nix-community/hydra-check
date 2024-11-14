@@ -5,18 +5,18 @@ use colored::Colorize;
 use indexmap::IndexMap;
 use log::warn;
 
-use crate::{structs::BuildStatus, FetchHydra, ResolvedArgs, StatusIcon};
+use crate::{structs::BuildStatus, FetchHydraReport, ResolvedArgs, StatusIcon};
 
 #[derive(Clone)]
 /// Container for the build status and metadata of a package
-struct PackageStatus<'a> {
+struct PackageReport<'a> {
     package: &'a str,
     url: String,
     /// Status of recent builds of the package
     builds: Vec<BuildStatus>,
 }
 
-impl FetchHydra for PackageStatus<'_> {
+impl FetchHydraReport for PackageReport<'_> {
     fn get_url(&self) -> &str {
         &self.url
     }
@@ -33,7 +33,7 @@ impl FetchHydra for PackageStatus<'_> {
     }
 }
 
-impl<'a> PackageStatus<'a> {
+impl<'a> PackageReport<'a> {
     /// Initializes the status container with the resolved package name
     /// and the resolved command line arguments.
     fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
@@ -69,7 +69,7 @@ impl ResolvedArgs {
         let mut status = true;
         let mut indexmap = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
-            let stat = PackageStatus::from_package_with_args(package, self);
+            let stat = PackageReport::from_package_with_args(package, self);
             if self.url {
                 println!("{}", stat.get_url());
                 continue;

@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 
 use crate::{
-    is_skipable_row, FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, TryAttr,
+    is_skipable_row, FetchHydraReport, ResolvedArgs, ShowHydraStatus, SoupFind, StatusIcon, TryAttr,
 };
 
 #[skip_serializing_none]
@@ -31,7 +31,7 @@ struct EvalStatus {
     delta: Option<String>,
 }
 
-impl FormatVecColored for EvalStatus {
+impl ShowHydraStatus for EvalStatus {
     fn format_as_vec(&self) -> Vec<ColoredString> {
         let mut row = Vec::new();
         let icon = ColoredString::from(&self.icon);
@@ -61,7 +61,7 @@ impl FormatVecColored for EvalStatus {
             };
             let delta = format!(
                 "Δ {}",
-                match self.delta.clone().unwrap_or("?".into()) {
+                match self.delta.clone().unwrap_or("~".into()).trim() {
                     x if x.starts_with("+") => x.green(),
                     x if x.starts_with("-") => x.red(),
                     x => x.into(),
@@ -80,14 +80,14 @@ impl FormatVecColored for EvalStatus {
 
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
-struct JobsetStatus<'a> {
+struct JobsetReport<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
     evals: Vec<EvalStatus>,
 }
 
-impl FetchHydra for JobsetStatus<'_> {
+impl FetchHydraReport for JobsetReport<'_> {
     fn get_url(&self) -> &str {
         &self.url
     }
@@ -104,7 +104,7 @@ impl FetchHydra for JobsetStatus<'_> {
     }
 }
 
-impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
+impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
     fn from(args: &'a ResolvedArgs) -> Self {
         //
         // https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
@@ -118,7 +118,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
     }
 }
 
-impl<'a> JobsetStatus<'a> {
+impl<'a> JobsetReport<'a> {
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "") {
@@ -209,7 +209,7 @@ impl<'a> JobsetStatus<'a> {
 
 impl ResolvedArgs {
     pub(crate) fn fetch_and_print_jobset(&self, summary: bool) -> anyhow::Result<Option<u64>> {
-        let stat = JobsetStatus::from(self);
+        let stat = JobsetReport::from(self);
         let (short, json) = match summary {
             true => (true, false),
             false => (self.short, self.json),
