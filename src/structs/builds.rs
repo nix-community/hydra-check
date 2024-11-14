@@ -4,7 +4,7 @@ use scraper::ElementRef;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{is_skipable_row, FormatVecColored, SoupFind, StatusIcon, TryAttr};
+use crate::{is_skipable_row, ShowHydraStatus, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
@@ -22,7 +22,7 @@ pub(crate) struct BuildStatus {
     pub(crate) job_name: Option<String>,
 }
 
-impl FormatVecColored for BuildStatus {
+impl ShowHydraStatus for BuildStatus {
     fn format_as_vec(&self) -> Vec<ColoredString> {
         let mut row = Vec::new();
         let icon = ColoredString::from(&self.icon);

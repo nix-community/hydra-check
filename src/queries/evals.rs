@@ -20,7 +20,7 @@ use std::fmt::Display;
 use insta::assert_snapshot;
 
 use crate::{
-    is_skipable_row, BuildStatus, Evaluation, FetchHydra, ResolvedArgs, SoupFind, StatusIcon,
+    is_skipable_row, BuildStatus, Evaluation, FetchHydraReport, ResolvedArgs, SoupFind, StatusIcon,
 };
 
 #[skip_serializing_none]
@@ -224,7 +224,7 @@ impl EvalInputChanges {
 }
 
 #[derive(Serialize, Clone)]
-struct EvalDetails<'a> {
+struct EvalReport<'a> {
     #[serde(flatten)]
     eval: &'a Evaluation,
     url: String,
@@ -240,7 +240,7 @@ struct EvalDetails<'a> {
     unfinished: Vec<BuildStatus>,
 }
 
-impl FetchHydra for EvalDetails<'_> {
+impl FetchHydraReport for EvalReport<'_> {
     fn get_url(&self) -> &str {
         &self.url
     }
@@ -257,7 +257,7 @@ impl FetchHydra for EvalDetails<'_> {
     }
 }
 
-impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
+impl<'a> From<&'a Evaluation> for EvalReport<'a> {
     fn from(eval: &'a Evaluation) -> Self {
         let url = format!("https://hydra.nixos.org/eval/{}", eval.id);
         let url = match &eval.filter {
@@ -281,7 +281,7 @@ impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
     }
 }
 
-impl<'a> EvalDetails<'a> {
+impl<'a> EvalReport<'a> {
     fn parse_build_stats(&self, doc: &Html, selector: &str) -> anyhow::Result<Vec<BuildStatus>> {
         let err = || {
             anyhow!(
@@ -407,7 +407,7 @@ impl ResolvedArgs {
             }
         };
         for (idx, eval) in evals.iter().enumerate() {
-            let stat = EvalDetails::from(eval);
+            let stat = EvalReport::from(eval);
             if self.url {
                 println!("{}", stat.get_url());
                 continue;
