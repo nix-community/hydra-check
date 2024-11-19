@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::info;
 use serde::Serialize;
 
 use crate::constants;
@@ -18,22 +18,23 @@ pub(crate) struct Evaluation {
 impl Evaluation {
     /// Parses an evaluation from a plain text specification.
     pub(crate) fn guess_from_spec(spec: &str) -> Self {
-        let mut spec = spec.splitn(2, "/");
-        let id = spec.next().unwrap();
-        let id = match id.parse() {
-            Ok(id) => id,
-            Err(err) => {
-                error!(
-                    "evaluations must be identified by a number {} {} '{}': {}",
-                    "(slash an optional filter), e.g. '1809585/coreutils'.",
-                    "Instead we get",
-                    id,
-                    err
-                );
-                std::process::exit(1);
-            }
+        let spec = spec.trim();
+
+        let mut split_spec = spec.splitn(2, "/");
+        let id = split_spec.next().unwrap().trim();
+        let filter = split_spec.next();
+
+        let (id, filter) = match id.parse() {
+            Ok(x) => (x, filter),
+            Err(_) => (
+                0u64, // for the latest eval
+                match id.is_empty() {
+                    true => filter,
+                    false => Some(spec),
+                },
+            ),
         };
-        let filter = match spec.next() {
+        let filter = match filter {
             None => {
                 let default = constants::DEFAULT_EVALUATION_FILTER.to_string();
                 info!(
@@ -41,10 +42,15 @@ impl Evaluation {
                     "no package filter has been specified", "for better performance"
                 );
                 info!(
-                    "specify another filter with --eval '{}', {}: '{}'\n",
-                    format!("{id}/<filter>"),
-                    "or force an empty filter with a trailing slash",
-                    format!("{id}/")
+                    "specify another filter with --eval '{}', {}\n",
+                    format!(
+                        "{}/<filter>",
+                        match id {
+                            0 => "<id>".into(),
+                            x => x.to_string(),
+                        }
+                    ),
+                    "or force an empty filter with a trailing slash '/'",
                 );
                 Some(default)
             }
@@ -67,13 +73,19 @@ impl Evaluation {
 
 #[test]
 fn guess_eval_from_spec() {
-    let default_filter = constants::DEFAULT_EVALUATION_FILTER.into();
+    let default_filter = constants::DEFAULT_EVALUATION_FILTER;
     for (spec, id, filter) in [
-        ("123456", 123456, Some(default_filter)),
+        ("123456", 123456, Some(default_filter.into())),
         ("123456/", 123456, None),
         ("123456/rustc", 123456, Some("rustc".into())),
+        ("", 0, Some(default_filter.into())),
+        ("/", 0, None),
+        ("/rustc", 0, Some("rustc".into())),
+        ("rustc", 0, Some("rustc".into())),
+        ("weird/filter", 0, Some("weird/filter".into())),
     ] {
         let eval = Evaluation::guess_from_spec(&spec);
-        debug_assert!(eval.id == id && eval.filter == filter);
+        println!("{:?}", eval);
+        assert!(eval.id == id && eval.filter == filter);
     }
 }

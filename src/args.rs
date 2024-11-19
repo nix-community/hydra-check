@@ -283,7 +283,8 @@ impl HydraCheckCli {
         let args = args.guess_jobset();
         let queries = match (args.queries.is_empty(), args.eval) {
             (true, false) => Queries::Jobset,
-            (true, true) => Queries::Evals(vec![]), // this would resolve to the latest eval of a jobset
+            // this would resolve to the latest eval of a jobset:
+            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("")]),
             (false, true) => Queries::Evals(args.guess_evals()),
             (false, false) => Queries::Packages(args.guess_packages()),
         };
