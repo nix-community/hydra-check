@@ -384,7 +384,7 @@ impl ResolvedArgs {
         evals: &Vec<Evaluation>,
     ) -> anyhow::Result<bool> {
         let mut indexmap = IndexMap::new();
-        let evals = match &evals.is_empty() {
+        let evals = match evals.iter().any(|eval| eval.id == 0) {
             false => evals.clone(),
             true => {
                 info!(
@@ -398,12 +398,15 @@ impl ResolvedArgs {
                     )
                 };
                 eprintln!("");
-                let id = self
-                    .fetch_and_print_jobset(true)?
-                    .ok_or_else(err)?
-                    .to_string();
-                eprintln!("");
-                vec![Evaluation::guess_from_spec(&id)]
+                let id = self.fetch_and_print_jobset(false)?.ok_or_else(err)?;
+                println!("");
+                evals
+                    .iter()
+                    .map(|eval| match &eval.id {
+                        0 => Evaluation { id, ..eval.clone() },
+                        _ => eval.clone(),
+                    })
+                    .collect()
             }
         };
         for (idx, eval) in evals.iter().enumerate() {
