@@ -25,6 +25,7 @@
           nativeBuildInputs = with pkgs.buildPackages; [
             cargo # with shell completions, instead of cargo-auditable
             cargo-insta # for updating insta snapshots
+            clippy # more lints for better rust code
           ] ++ nativeBuildInputs;
 
           env = with pkgs.buildPackages; {
