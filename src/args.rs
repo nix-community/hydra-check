@@ -111,7 +111,14 @@ impl HydraCheckCli {
             }
             return self;
         }
-        let arch = format!("{}-{}", ARCH, OS);
+        let arch = format!(
+            "{}-{}",
+            ARCH,
+            match OS {
+                "macos" => "darwin", // hack to produce e.g. `aarch64-darwin`
+                x => x,
+            }
+        );
         debug!("assuming --arch '{arch}'");
         warn_if_unknown(&arch);
         Self {
