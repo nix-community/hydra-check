@@ -1,6 +1,6 @@
 [package]
 name = "hydra-check"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Felix Richter <github@krebsco.de>", "Bryan Lai <bryanlais@gmail.com>"]
 edition = "2021"
 
