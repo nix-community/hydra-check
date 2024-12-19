@@ -1,4 +1,13 @@
 #![warn(missing_docs)]
+
+//! <div class="warning">
+//!
+//! Currently hydra-check is only provided as a CLI application, _not_ as a library.
+//! We exposed the library documentation here for internal reference.
+//! We do _not_ provide any guarantee about the stability of these interfaces.
+//!
+//! </div>
+//!
 #![doc = include_str!("../README.md")]
 
 mod args;
