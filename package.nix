@@ -5,11 +5,12 @@
   openssl,
   stdenv,
   installShellFiles,
+  versionCheckHook,
 }:
 
 rustPlatform.buildRustPackage {
   pname = "hydra-check";
-  version = "2.0.0";
+  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
 
   src = builtins.path {
     name = "hydra-check-source";
@@ -39,11 +40,21 @@ rustPlatform.buildRustPackage {
       --zsh <($out/bin/hydra-check --shell-completion zsh)
   '';
 
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+
+  doInstallCheck = true;
+
   meta = {
-    description = "scrape hydra for the build status of a package";
-    homepage = "https://github.com/bryango/hydra-check";
+    description = "Check hydra for the build status of a package";
+    homepage = "https://github.com/nix-community/hydra-check";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ bryango ];
+    maintainers = with lib.maintainers; [
+      makefu
+      artturin
+      bryango
+    ];
     mainProgram = "hydra-check";
   };
 }
