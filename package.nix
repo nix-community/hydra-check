@@ -1,49 +1,44 @@
 {
   lib,
+  hydra-check,
   rustPlatform,
-  pkg-config,
-  openssl,
-  stdenv,
-  installShellFiles,
+  versionCheckHook,
 }:
 
-rustPlatform.buildRustPackage {
-  pname = "hydra-check";
-  version = "2.0.0";
+hydra-check.overrideAttrs (
+  {
+    meta ? { },
+    nativeInstallCheckInputs ? [ ],
+    ...
+  }:
+  {
+    version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
 
-  src = builtins.path {
-    name = "hydra-check-source";
-    path = ./.;
-  };
-
-  cargoLock = {
-    lockFile = builtins.path {
-      name = "hydra-check-Cargo.lock";
-      path = ./Cargo.lock;
+    # `builtins.path` works well with lazy trees
+    src = builtins.path {
+      name = "hydra-check-source";
+      path = ./.;
     };
-  };
 
-  nativeBuildInputs = [
-    pkg-config
-    installShellFiles
-  ];
+    cargoDeps = rustPlatform.importCargoLock {
+      lockFile = builtins.path {
+        name = "hydra-check-Cargo.lock";
+        path = ./Cargo.lock;
+      };
+    };
 
-  buildInputs = [
-    openssl
-  ];
+    nativeInstallCheckInputs = nativeInstallCheckInputs ++ [
+      versionCheckHook
+    ];
 
-  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
-    installShellCompletion --cmd hydra-check \
-      --bash <($out/bin/hydra-check --shell-completion bash) \
-      --fish <($out/bin/hydra-check --shell-completion fish) \
-      --zsh <($out/bin/hydra-check --shell-completion zsh)
-  '';
+    doInstallCheck = true;
 
-  meta = {
-    description = "scrape hydra for the build status of a package";
-    homepage = "https://github.com/bryango/hydra-check";
-    license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ bryango ];
-    mainProgram = "hydra-check";
-  };
-}
+    meta = meta // {
+      maintainers = with lib.maintainers; [
+        makefu
+        artturin
+        bryango
+      ];
+    };
+  }
+)

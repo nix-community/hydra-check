@@ -1,5 +1,6 @@
 # configured by each user
 .envrc
+.vscode
 
 secrets.py
 runs
