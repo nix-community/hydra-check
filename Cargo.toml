@@ -1,8 +1,13 @@
 [package]
 name = "hydra-check"
 version = "2.0.1"
+description = "Check hydra for the build status of a package"
 authors = ["Felix Richter <github@krebsco.de>", "Bryan Lai <bryanlais@gmail.com>"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/nix-community/hydra-check"
+keywords = ["cli"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.89"
@@ -26,3 +31,13 @@ insta = "1.41.1"
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+manual_string_new = "allow"
+match_bool = "allow"
+single_match = "allow"
+single_match_else = "allow"
+missing_errors_doc = "allow"
+multiple_crate_versions = "allow"

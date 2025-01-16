@@ -134,8 +134,10 @@ fn format_input_changes() {
 }
 
 impl EvalInputChanges {
+    #[allow(clippy::similar_names)]
     fn from_html(doc: &Html) -> anyhow::Result<Vec<Self>> {
         let tables = doc.find_all("div#tabs-inputs table");
+        #[allow(clippy::redundant_closure_for_method_calls)]
         let err = || {
             anyhow!(
                 "could not parse the table of changed inputs in {:?}",
@@ -318,6 +320,7 @@ impl<'a> EvalReport<'a> {
                 })
                 .collect();
             let [name, input_type, value, revision, store_path] = columns.as_slice() else {
+                #[allow(clippy::redundant_else)]
                 if let Ok(true) = is_skipable_row(row) {
                     continue;
                 } else {
@@ -456,6 +459,7 @@ impl ResolvedArgs {
                 (&stat.still_succeed, "Still Succeeding:".bold()),
                 (&stat.unfinished, "Queued Jobs:".bold()),
             ] {
+                #[allow(clippy::uninlined_format_args)]
                 if !build_stats.is_empty() {
                     println!("");
                     println!("{}", prompt);

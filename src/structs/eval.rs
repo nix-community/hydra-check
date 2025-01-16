@@ -74,6 +74,7 @@ impl Evaluation {
 #[test]
 fn guess_eval_from_spec() {
     let default_filter = constants::DEFAULT_EVALUATION_FILTER;
+    #[allow(clippy::unreadable_literal)]
     for (spec, id, filter) in [
         ("123456", 123456, Some(default_filter.into())),
         ("123456/", 123456, None),

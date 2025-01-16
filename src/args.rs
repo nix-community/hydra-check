@@ -19,7 +19,11 @@ pub(crate) enum Queries {
 
 #[derive(Parser, Debug, Default)]
 #[command(author, version, verbatim_doc_comment)]
-#[allow(rustdoc::bare_urls)]
+#[allow(
+    rustdoc::bare_urls,
+    clippy::doc_markdown,
+    clippy::struct_excessive_bools
+)]
 #[deny(missing_docs)]
 ///
 /// Check hydra.nixos.org for build status of packages

@@ -89,6 +89,7 @@ impl BuildStatus {
             if let [status, build, job_name, timestamp, name, arch] = columns.as_slice() {
                 (status, build, Some(job_name), timestamp, name, arch)
             } else {
+                #[allow(clippy::redundant_else)]
                 if is_skipable_row(row)? {
                     continue;
                 } else {

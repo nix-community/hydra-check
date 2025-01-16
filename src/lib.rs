@@ -8,6 +8,7 @@
 //!
 //! </div>
 //!
+#![allow(clippy::doc_markdown)]
 #![doc = include_str!("../README.md")]
 
 mod args;

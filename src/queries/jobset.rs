@@ -131,6 +131,7 @@ impl<'a> JobsetReport<'a> {
             let [eval_id, timestamp, input_changes, succeeded, failed, queued, delta] =
                 columns.as_slice()
             else {
+                #[allow(clippy::redundant_else)]
                 if is_skipable_row(row)? {
                     continue;
                 } else {

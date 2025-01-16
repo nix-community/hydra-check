@@ -5,9 +5,14 @@ on:
 jobs:
 
   simple-build:
+    env:
+      CARGO_TERM_COLOR: always
+      TERM: xterm-256color
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macos-13 for x86_64-darwin
+        os: [ubuntu-latest, macos-13, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -16,11 +21,16 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
     - uses: DeterminateSystems/magic-nix-cache-action@v8
     - run: nix-build
+    - run: nix-shell --command 'echo $version' # set in package.nix
 
   flakes:
+    env:
+      CARGO_TERM_COLOR: always
+      TERM: xterm-256color
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-13, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -29,5 +39,8 @@ jobs:
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
     - uses: DeterminateSystems/magic-nix-cache-action@v8
-    - run: nix build
+    - run: nix build --print-build-logs
     - run: nix flake check
+    - run: nix develop -c cargo clippy
+    - run: nix develop -c cargo fmt --check --all
+    - run: nix develop -c cargo test --all-features -- --color=always --ignored # run only ignored tests
