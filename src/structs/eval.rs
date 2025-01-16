@@ -20,7 +20,7 @@ impl Evaluation {
     pub(crate) fn guess_from_spec(spec: &str) -> Self {
         let spec = spec.trim();
 
-        let mut split_spec = spec.splitn(2, "/");
+        let mut split_spec = spec.splitn(2, '/');
         let id = split_spec.next().unwrap().trim();
         let filter = split_spec.next();
 
@@ -85,8 +85,8 @@ fn guess_eval_from_spec() {
         ("rustc", 0, Some("rustc".into())),
         ("weird/filter", 0, Some("weird/filter".into())),
     ] {
-        let eval = Evaluation::guess_from_spec(&spec);
-        println!("{:?}", eval);
+        let eval = Evaluation::guess_from_spec(spec);
+        println!("{eval:?}");
         assert!(eval.id == id && eval.filter == filter);
     }
 }

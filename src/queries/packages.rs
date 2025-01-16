@@ -65,7 +65,7 @@ impl<'a> PackageReport<'a> {
 }
 
 impl ResolvedArgs {
-    pub(crate) fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
+    pub(crate) fn fetch_and_print_packages(&self, packages: &[String]) -> anyhow::Result<bool> {
         let mut status = true;
         let mut indexmap = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
@@ -78,7 +78,7 @@ impl ResolvedArgs {
             if !self.json {
                 // print title first, then fetch
                 if idx > 0 && !self.short {
-                    println!(""); // vertical whitespace
+                    println!(); // vertical whitespace
                 }
                 println!(
                     "Build Status for {} on jobset {}",
@@ -110,7 +110,7 @@ impl ResolvedArgs {
             }
             println!("{}", stat.format_table(self.short, &stat.builds));
             if !success && self.short {
-                warn!("latest build failed, check out: {}", url_dimmed)
+                warn!("latest build failed, check out: {url_dimmed}");
             }
         }
         if self.json {

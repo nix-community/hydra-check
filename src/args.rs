@@ -248,7 +248,7 @@ impl HydraCheckCli {
                     );
                     None
                 } else {
-                    Some(self.guess_package_name(&package))
+                    Some(self.guess_package_name(package))
                 }
             })
             .collect()
@@ -256,8 +256,8 @@ impl HydraCheckCli {
 
     fn guess_evals(&self) -> Vec<Evaluation> {
         let mut evals = Vec::new();
-        for spec in self.queries.iter() {
-            evals.push(Evaluation::guess_from_spec(spec))
+        for spec in &self.queries {
+            evals.push(Evaluation::guess_from_spec(spec));
         }
         evals
     }
@@ -342,8 +342,8 @@ impl ResolvedArgs {
                 self.fetch_and_print_jobset(self.short)?;
                 Ok(true)
             }
-            Queries::Packages(packages) => self.fetch_and_print_packages(&packages),
-            Queries::Evals(evals) => self.fetch_and_print_evaluations(&evals),
+            Queries::Packages(packages) => self.fetch_and_print_packages(packages),
+            Queries::Evals(evals) => self.fetch_and_print_evaluations(evals),
         }
     }
 }
@@ -358,7 +358,7 @@ fn guess_jobset() {
     for (channel, jobset) in aliases {
         eprintln!("{channel} => {jobset}");
         let args = HydraCheckCli::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
-        debug_assert_eq!(args.jobset, Some(jobset.into()))
+        debug_assert_eq!(args.jobset, Some(jobset.into()));
     }
 }
 
@@ -379,5 +379,5 @@ fn guess_darwin() {
 #[ignore = "require internet connection"]
 fn guess_stable() {
     let args = HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
-    eprintln!("{:?}", args.jobset)
+    eprintln!("{:?}", args.jobset);
 }

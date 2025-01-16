@@ -72,7 +72,7 @@ fn format_eval_input() {
         [1mvalue[0m: https://github.com/nixos/nixpkgs.git
         [1mrevision[0m: 1e9e641a3fc1b22fbdb823a99d8ff96692cc4fba
         [1mstore_path[0m: /nix/store/ln479gq56q3kyzyl0mm00xglpmfpzqx4-source
-    "#)
+    "#);
 }
 
 #[skip_serializing_none]
@@ -130,7 +130,7 @@ fn format_input_changes() {
         [1mchanges[0m: 8c4dc69b9732 to 1e9e641a3fc1
         [1murl[0m: https://hydra.nixos.org/api/scmdiff?blah/blah/blah
         [1mrevs[0m: 8c4dc69b9732f6bbe826b5fbb32184987520ff26 -> 1e9e641a3fc1b22fbdb823a99d8ff96692cc4fba
-    "#)
+    "#);
 }
 
 impl EvalInputChanges {
@@ -177,7 +177,7 @@ impl EvalInputChanges {
                 .find("a")
                 .ok()
                 .and_then(|x| x.attr("href"))
-                .map(|x| x.to_string());
+                .map(str::to_string);
 
             let revs = if let Some(url) = &url {
                 // note that the returned url is not deterministic:
@@ -198,7 +198,9 @@ impl EvalInputChanges {
                 None
             };
 
-            let short_revs = if !description.is_empty() {
+            let short_revs = if description.is_empty() {
+                None
+            } else {
                 match Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$")
                     .unwrap()
                     .captures(&description)
@@ -209,8 +211,6 @@ impl EvalInputChanges {
                     }
                     _ => None,
                 }
-            } else {
-                None
             };
 
             input_changes.push(EvalInputChanges {
@@ -283,7 +283,7 @@ impl<'a> From<&'a Evaluation> for EvalReport<'a> {
     }
 }
 
-impl<'a> EvalReport<'a> {
+impl EvalReport<'_> {
     fn parse_build_stats(&self, doc: &Html, selector: &str) -> anyhow::Result<Vec<BuildStatus>> {
         let err = || {
             anyhow!(
@@ -292,7 +292,7 @@ impl<'a> EvalReport<'a> {
                 doc.html()
             )
         };
-        let tbody = match self.find_tbody(&doc, selector) {
+        let tbody = match self.find_tbody(doc, selector) {
             Err(stat) => bail!("{:?}", stat.inputs.first().ok_or_else(err)?.value),
             Ok(tbody) => tbody,
         };
@@ -314,7 +314,7 @@ impl<'a> EvalReport<'a> {
                 .map(|x| {
                     let text: String = x.text().collect();
                     match text.trim() {
-                        x if x.is_empty() => None,
+                        "" => None,
                         x => Some(x.to_string()),
                     }
                 })
@@ -382,13 +382,10 @@ impl<'a> EvalReport<'a> {
 }
 
 impl ResolvedArgs {
-    pub(crate) fn fetch_and_print_evaluations(
-        &self,
-        evals: &Vec<Evaluation>,
-    ) -> anyhow::Result<bool> {
+    pub(crate) fn fetch_and_print_evaluations(&self, evals: &[Evaluation]) -> anyhow::Result<bool> {
         let mut indexmap = IndexMap::new();
-        let evals = match evals.iter().any(|eval| eval.id == 0) {
-            false => evals.clone(),
+        let evals: Vec<_> = match evals.iter().any(|eval| eval.id == 0) {
+            false => evals.to_owned(),
             true => {
                 info!(
                     "querying the latest evaluation of --jobset '{}'",
@@ -400,9 +397,9 @@ impl ResolvedArgs {
                         self.jobset
                     )
                 };
-                eprintln!("");
+                eprintln!();
                 let id = self.fetch_and_print_jobset(false)?.ok_or_else(err)?;
-                println!("");
+                println!();
                 evals
                     .iter()
                     .map(|eval| match &eval.id {
@@ -421,7 +418,7 @@ impl ResolvedArgs {
             if !self.json {
                 // print title first, then fetch
                 if idx > 0 && !self.short {
-                    println!(""); // vertical whitespace
+                    println!(); // vertical whitespace
                 }
                 println!(
                     "Evaluation {}{} {}",
@@ -439,11 +436,11 @@ impl ResolvedArgs {
                 continue;
             }
             for entry in &stat.inputs {
-                println!(""); // vertical separation
+                println!(); // vertical separation
                 println!("{entry}");
             }
             for entry in &stat.changes {
-                println!(""); // vertical separation
+                println!(); // vertical separation
                 println!("{entry}");
             }
             if self.short {
@@ -461,7 +458,7 @@ impl ResolvedArgs {
             ] {
                 #[allow(clippy::uninlined_format_args)]
                 if !build_stats.is_empty() {
-                    println!("");
+                    println!();
                     println!("{}", prompt);
                     println!("{}", stat.format_table(false, build_stats));
                 }

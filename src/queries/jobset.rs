@@ -62,8 +62,8 @@ impl ShowHydraStatus for EvalStatus {
             let delta = format!(
                 "Δ {}",
                 match self.delta.clone().unwrap_or("~".into()).trim() {
-                    x if x.starts_with("+") => x.green(),
-                    x if x.starts_with("-") => x.red(),
+                    x if x.starts_with('+') => x.green(),
+                    x if x.starts_with('-') => x.red(),
                     x => x.into(),
                 }
             )
@@ -118,7 +118,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
     }
 }
 
-impl<'a> JobsetReport<'a> {
+impl JobsetReport<'_> {
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "") {
@@ -162,7 +162,7 @@ impl<'a> JobsetReport<'a> {
             let input_changes = {
                 let text: String = input_changes.text().collect();
                 let text = text.replace(&status, "");
-                let texts: Vec<_> = text.trim().split_whitespace().collect();
+                let texts: Vec<_> = text.split_whitespace().collect();
                 texts.join(" ")
             };
 
@@ -202,7 +202,7 @@ impl<'a> JobsetReport<'a> {
                 failed: Some(failed?),
                 queued: Some(queued?),
                 delta,
-            })
+            });
         }
         Ok(Self { evals, ..self })
     }

@@ -59,7 +59,7 @@ trait FetchHydraReport: Clone {
     /// Checks if the fetched [Html] contains a `tbody` tag (table body).
     /// If not, returns the alert text. If yes, returns the found element.
     fn find_tbody<'a>(&self, doc: &'a Html, selector: &str) -> Result<ElementRef<'a>, Self> {
-        let selectors = format!("{} tbody", selector);
+        let selectors = format!("{selector} tbody");
         match doc.find(selectors.trim()) {
             Err(_) => {
                 // either the package was not evaluated (due to being e.g. unfree)

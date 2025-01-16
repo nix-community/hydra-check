@@ -54,5 +54,5 @@ fn fetch_stable() {
     println!("latest stable version: {ver}");
     debug_assert!(regex::Regex::new(r"^[0-9]+\.[0-9]+")
         .unwrap()
-        .is_match(&ver))
+        .is_match(&ver));
 }
