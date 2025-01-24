@@ -39,10 +39,7 @@ pub const KNOWN_ARCHITECTURES: [&str; 4] = [
 /// ]);
 /// ```
 ///
-pub const NIXOS_ARCHITECTURES: [&str; 2] = [
-    "x86_64-linux",
-    "aarch64-linux",
-];
+pub const NIXOS_ARCHITECTURES: [&str; 2] = ["x86_64-linux", "aarch64-linux"];
 
 /// Default package filter for the details of a specific evaluation.
 pub const DEFAULT_EVALUATION_FILTER: &str = "nixVersions.stable";
