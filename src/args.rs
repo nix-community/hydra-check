@@ -127,20 +127,33 @@ impl HydraCheckCli {
         }
     }
 
-    fn guess_jobset(self) -> Self {
+    /// Guesses the hydra jobset based on system information from build time,
+    /// run time, and the provided command line arguments.
+    /// Note that this method is inherently non-deterministic as it depends on
+    /// the current build target & runtime systems.
+    /// See the source code for the detailed heuristics.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn guess_jobset(self) -> Self {
         if self.jobset.is_some() {
             return self;
         }
         // https://wiki.nixos.org/wiki/Channel_branches
         // https://github.com/NixOS/infra/blob/master/channels.nix
-        let (trunk, combined) = ("nixpkgs/trunk", "nixos/trunk-combined");
+        let (nixpkgs, nixos) = ("nixpkgs/trunk", "nixos/trunk-combined");
         let jobset: String = match self.channel.as_str() {
-            "master" | "nixpkgs-unstable" => trunk.into(),
-            "nixos-unstable" => combined.into(),
+            "master" | "nixpkgs-unstable" => nixpkgs.into(),
+            "nixos-unstable" => nixos.into(),
             "nixos-unstable-small" => "nixos/unstable-small".into(),
-            "unstable" => match Path::new("/etc/NIXOS").exists() {
-                true => combined.into(), // NixOS
-                false => trunk.into(),   // others
+            "unstable" => match (Path::new("/etc/NIXOS").exists(), &self.arch) {
+                (true, Some(arch))
+                    if Vec::from(constants::NIXOS_ARCHITECTURES).contains(&arch.as_str()) =>
+                {
+                    // only returns the NixOS jobset if the current system is NixOS
+                    // and the --arch is a NixOS supported system.
+                    nixos.into()
+                }
+                _ => nixpkgs.into(),
             },
             "stable" => {
                 let ver = match NixpkgsChannelVersion::stable() {
@@ -181,7 +194,11 @@ impl HydraCheckCli {
         }
     }
 
-    fn guess_package_name(&self, package: &str) -> String {
+    /// Guesses the full package name spec (e.g. `nixpkgs.gimp.x86_64-linux`)
+    /// for hydra, given the command line inputs.
+    /// See the source code for the detailed heuristics.
+    #[must_use]
+    pub fn guess_package_name(&self, package: &str) -> String {
         let has_known_arch_suffix = constants::KNOWN_ARCHITECTURES
             .iter()
             .any(|known_arch| package.ends_with(format!(".{known_arch}").as_str()));
@@ -339,6 +356,19 @@ fn guess_jobset() {
         let args = HydraCheckCli::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
         debug_assert_eq!(args.jobset, Some(jobset.into()))
     }
+}
+
+#[test]
+fn guess_darwin() {
+    let apple_silicon = "aarch64-darwin";
+    if Vec::from(constants::NIXOS_ARCHITECTURES).contains(&apple_silicon) {
+        // if one day NixOS gains support for the darwin kernel
+        // (however unlikely), abort this test
+        return;
+    }
+    let args = HydraCheckCli::parse_from(["hydra-check", "--arch", apple_silicon]).guess_jobset();
+    // always follow nixpkgs-unstable
+    debug_assert_eq!(args.jobset, Some("nixpkgs/trunk".into()));
 }
 
 #[test]
