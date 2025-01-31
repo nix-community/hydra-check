@@ -20,7 +20,7 @@ impl Evaluation {
     pub(crate) fn guess_from_spec(spec: &str) -> Self {
         let spec = spec.trim();
 
-        let mut split_spec = spec.splitn(2, "/");
+        let mut split_spec = spec.splitn(2, '/');
         let id = split_spec.next().unwrap().trim();
         let filter = split_spec.next();
 
@@ -74,6 +74,7 @@ impl Evaluation {
 #[test]
 fn guess_eval_from_spec() {
     let default_filter = constants::DEFAULT_EVALUATION_FILTER;
+    #[allow(clippy::unreadable_literal)]
     for (spec, id, filter) in [
         ("123456", 123456, Some(default_filter.into())),
         ("123456/", 123456, None),
@@ -84,8 +85,8 @@ fn guess_eval_from_spec() {
         ("rustc", 0, Some("rustc".into())),
         ("weird/filter", 0, Some("weird/filter".into())),
     ] {
-        let eval = Evaluation::guess_from_spec(&spec);
-        println!("{:?}", eval);
+        let eval = Evaluation::guess_from_spec(spec);
+        println!("{eval:?}");
         assert!(eval.id == id && eval.filter == filter);
     }
 }

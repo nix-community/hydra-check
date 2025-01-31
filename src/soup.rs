@@ -7,9 +7,10 @@ use anyhow::anyhow;
 use scraper::{selectable::Selectable, ElementRef, Html, Selector};
 use std::fmt::Debug;
 
+#[allow(clippy::module_name_repetitions)]
 /// A simple wrapper trait that provides the `find` and `find_all` methods
 /// to [`scraper`]'s [`Selectable`] elements, inspired by the interface of
-/// Python's BeautifulSoup.
+/// Python's `BeautifulSoup`.
 pub trait SoupFind<'a> {
     /// Finds all child elements matching the CSS selectors
     /// and collect them into a [`Vec`].
