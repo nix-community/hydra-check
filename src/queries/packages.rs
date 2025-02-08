@@ -109,8 +109,25 @@ impl ResolvedArgs {
                 continue; // print later
             }
             println!("{}", stat.format_table(self.short, &stat.builds));
-            if !success && self.short {
-                warn!("latest build failed, check out: {url_dimmed}");
+            if !success {
+                if self.short {
+                    warn!("latest build failed, check out: {url_dimmed}");
+                } else {
+                    eprintln!("\n{}", "Links:".bold());
+                    #[rustfmt::skip]
+                    eprintln!(
+                        "{} (all builds)",
+                        format!("🔗 {url_dimmed}/all").dimmed()
+                    );
+                    eprintln!(
+                        "{} (latest successful build)",
+                        format!("🔗 {url_dimmed}/latest").dimmed()
+                    );
+                    eprintln!(
+                        "{} (latest success from a finished eval)",
+                        format!("🔗 {url_dimmed}/latest-finished").dimmed()
+                    );
+                }
             }
         }
         if self.json {
