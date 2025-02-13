@@ -17,7 +17,7 @@
       in
       {
         packages = {
-          hydra-check = pkgs.callPackage ./package.nix { };
+          hydra-check = pkgs.callPackage ./package.nix { source = self; };
           default = self.packages.${system}.hydra-check;
         };
 
@@ -27,6 +27,7 @@
             cargo # with shell completions, instead of cargo-auditable
             cargo-insta # for updating insta snapshots
             clippy # more lints for better rust code
+            nixfmt-rfc-style # for formatting nix code
           ] ++ nativeBuildInputs;
 
           env = with pkgs.buildPackages; {
