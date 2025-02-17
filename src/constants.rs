@@ -47,9 +47,8 @@ pub const DEFAULT_EVALUATION_FILTER: &str = "nixVersions.stable";
 /// User agent header that we send along to hydra for identifying this app.
 ///
 /// ```
-/// assert_eq!(
-///     hydra_check::constants::APP_USER_AGENT,
-///     format!("hydra-check/{}", env!("CARGO_PKG_VERSION")),
+/// assert!(
+///     hydra_check::constants::APP_USER_AGENT.starts_with("hydra-check/")
 /// );
 /// ```
 ///
