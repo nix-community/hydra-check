@@ -3,8 +3,9 @@
 
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::warn;
+use log::{info, warn};
 
+use super::builds::BuildReport;
 use crate::{structs::BuildStatus, FetchHydraReport, ResolvedArgs, StatusIcon};
 
 #[derive(Clone)]
@@ -127,6 +128,23 @@ impl ResolvedArgs {
                         "{} (latest success from a finished eval)",
                         format!("🔗 {url_dimmed}/latest-finished").dimmed()
                     );
+
+                    eprintln!();
+                }
+                info!("showing inputs for the latest success from a finished eval...");
+
+                let url = format!("{}/latest-finished", stat.get_url());
+                let build_report = BuildReport::from_url(&url);
+                let build_report = build_report.fetch_and_read()?;
+                for entry in &build_report.inputs {
+                    if self.short {
+                        if let (Some(name), Some(rev)) = (&entry.name, &entry.revision) {
+                            println!("{name}: {rev}");
+                        }
+                    } else {
+                        println!(); // vertical separation
+                        println!("{entry}");
+                    }
                 }
             }
         }
