@@ -161,6 +161,13 @@ impl EvalInputChanges {
         let tbody = table.find_all("tr");
         let rows = tbody.get(1..).ok_or_else(err)?;
         let mut input_changes = Vec::new();
+
+        let regex_short_revs = Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$").unwrap();
+        let [regex_rev1, regex_rev2] = ["rev1", "rev2"].map(|rev_id| {
+            let re = format!("^.*{rev_id}=([0-9a-z]+).*$");
+            Regex::new(&re).unwrap()
+        });
+
         for row in rows {
             let columns = row.find_all("td");
             let mut columns = columns.iter();
@@ -182,9 +189,8 @@ impl EvalInputChanges {
             let revs = if let Some(url) = &url {
                 // note that the returned url is not deterministic:
                 // the position of the query parameters may float around
-                let [rev1, rev2] = ["rev1", "rev2"].map(|rev_spec| {
-                    let re = format!("^.*{rev_spec}=([0-9a-z]+).*$");
-                    match Regex::new(&re).unwrap().captures(url).map(|x| x.extract()) {
+                let [rev1, rev2] = [&regex_rev1, &regex_rev2].map(|regex_rev| {
+                    match regex_rev.captures(url).map(|x| x.extract()) {
                         Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
                         _ => None,
                     }
@@ -201,11 +207,7 @@ impl EvalInputChanges {
             let short_revs = if description.is_empty() {
                 None
             } else {
-                match Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$")
-                    .unwrap()
-                    .captures(&description)
-                    .map(|x| x.extract())
-                {
+                match regex_short_revs.captures(&description).map(|x| x.extract()) {
                     Some((_, [rev1, rev2])) if (!rev1.is_empty()) && (!rev2.is_empty()) => {
                         Some((rev1.to_string(), rev2.to_string()))
                     }
