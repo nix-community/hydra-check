@@ -3,7 +3,7 @@
 
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::{info, warn};
+use log::info;
 
 use super::builds::BuildReport;
 use crate::{structs::BuildStatus, FetchHydraReport, ResolvedArgs, StatusIcon};
@@ -112,7 +112,7 @@ impl ResolvedArgs {
             println!("{}", stat.format_table(self.short, &stat.builds));
             if !success {
                 if self.short {
-                    warn!("latest build failed, check out: {url_dimmed}");
+                    info!("latest build failed, check out: {url_dimmed}");
                 } else {
                     eprintln!("\n{}", "Links:".bold());
                     #[rustfmt::skip]
