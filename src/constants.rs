@@ -43,3 +43,13 @@ pub const NIXOS_ARCHITECTURES: [&str; 2] = ["x86_64-linux", "aarch64-linux"];
 
 /// Default package filter for the details of a specific evaluation.
 pub const DEFAULT_EVALUATION_FILTER: &str = "nixVersions.stable";
+
+/// User agent header that we send along to hydra for identifying this app.
+///
+/// ```
+/// assert!(
+///     hydra_check::constants::APP_USER_AGENT.starts_with("hydra-check/")
+/// );
+/// ```
+///
+pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));

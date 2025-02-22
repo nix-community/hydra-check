@@ -3,8 +3,9 @@
 
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::warn;
+use log::info;
 
+use super::builds::BuildReport;
 use crate::{structs::BuildStatus, FetchHydraReport, ResolvedArgs, StatusIcon};
 
 #[derive(Clone)]
@@ -111,7 +112,7 @@ impl ResolvedArgs {
             println!("{}", stat.format_table(self.short, &stat.builds));
             if !success {
                 if self.short {
-                    warn!("latest build failed, check out: {url_dimmed}");
+                    info!("latest build failed, check out: {url_dimmed}");
                 } else {
                     eprintln!("\n{}", "Links:".bold());
                     #[rustfmt::skip]
@@ -127,6 +128,23 @@ impl ResolvedArgs {
                         "{} (latest success from a finished eval)",
                         format!("🔗 {url_dimmed}/latest-finished").dimmed()
                     );
+
+                    eprintln!();
+                }
+                info!("showing inputs for the latest success from a finished eval...");
+
+                let url = format!("{}/latest-finished", stat.get_url());
+                let build_report = BuildReport::from_url(&url);
+                let build_report = build_report.fetch_and_read()?;
+                for entry in &build_report.inputs {
+                    if self.short {
+                        if let (Some(name), Some(rev)) = (&entry.name, &entry.revision) {
+                            println!("{name}: {rev}");
+                        }
+                    } else {
+                        println!(); // vertical separation
+                        println!("{entry}");
+                    }
                 }
             }
         }

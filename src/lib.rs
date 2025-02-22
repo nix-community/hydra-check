@@ -24,7 +24,7 @@ pub use fetch_stable::NixpkgsChannelVersion;
 
 use args::ResolvedArgs;
 use soup::{SoupFind, TryAttr};
-use structs::{BuildStatus, Evaluation, StatusIcon};
+use structs::{BuildStatus, EvalInput, Evaluation, StatusIcon};
 
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
@@ -46,6 +46,7 @@ trait FetchHydraReport: Clone {
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(30))
+            .user_agent(constants::APP_USER_AGENT)
             .build()?
             .get(self.get_url())
             .send()?
