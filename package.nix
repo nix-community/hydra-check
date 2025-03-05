@@ -2,36 +2,49 @@
   lib,
   hydra-check,
   rustPlatform,
-  versionCheckHook,
+  source ? builtins.path {
+    # `builtins.path` works well with lazy trees
+    name = "hydra-check-source";
+    path = ./.;
+  },
 }:
+
+let
+
+  packageVersion = with builtins; (fromTOML (readFile "${source}/Cargo.toml")).package.version;
+
+  # append git revision to the version string, if available
+  versionSuffix =
+    if (source ? dirtyShortRev || source ? shortRev) then
+      "-g${source.dirtyShortRev or source.shortRev}"
+    else
+      "";
+
+  newVersion = "${packageVersion}${versionSuffix}";
+
+in
 
 hydra-check.overrideAttrs (
   {
+    version,
     meta ? { },
+    nativeBuildInputs ? [ ],
     nativeInstallCheckInputs ? [ ],
     ...
   }:
   {
-    version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
+    version =
+      assert lib.assertMsg (lib.versionAtLeast newVersion version) ''
+        hydra-check provided here (${newVersion}) failed to be newer
+        than the one provided in nixpkgs (${version}).
+      '';
+      newVersion;
 
-    # `builtins.path` works well with lazy trees
-    src = builtins.path {
-      name = "hydra-check-source";
-      path = ./.;
-    };
+    src = source;
 
     cargoDeps = rustPlatform.importCargoLock {
-      lockFile = builtins.path {
-        name = "hydra-check-Cargo.lock";
-        path = ./Cargo.lock;
-      };
+      lockFile = "${source}/Cargo.lock";
     };
-
-    nativeInstallCheckInputs = nativeInstallCheckInputs ++ [
-      versionCheckHook
-    ];
-
-    doInstallCheck = true;
 
     meta = meta // {
       maintainers = with lib.maintainers; [
@@ -39,6 +52,8 @@ hydra-check.overrideAttrs (
         artturin
         bryango
       ];
+      # to correctly generate meta.position for backtrace:
+      inherit (meta) description;
     };
   }
 )
