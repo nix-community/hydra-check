@@ -289,7 +289,11 @@ impl HydraCheckCli {
                             ]
                             .join(" ")
                         );
-                        completion_text.replace("CHANNEL:_default", &channel_options)
+                        let arch_options =
+                            format!("ARCH:({})", constants::KNOWN_ARCHITECTURES.join(" "));
+                        completion_text
+                            .replace("CHANNEL:_default", &channel_options)
+                            .replace("ARCH:_default", &arch_options)
                     }
                     _ => completion_text,
                 }
