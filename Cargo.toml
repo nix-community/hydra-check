@@ -1,6 +1,6 @@
 [package]
 name = "hydra-check"
-version = "2.0.3"
+version = "2.0.4"
 description = "Check hydra for the build status of a package"
 authors = ["Felix Richter <github@krebsco.de>", "Bryan Lai <bryanlais@gmail.com>"]
 edition = "2021"
