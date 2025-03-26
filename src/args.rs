@@ -220,7 +220,9 @@ impl HydraCheckCli {
         let arch_suffix = match self.arch.clone() {
             _ if has_known_arch_suffix => "".into(),
             None => warn_unknown_arch(),
-            Some(arch) if arch.is_empty() => warn_unknown_arch(),
+            // empty --arch is useful for aggregate job such as the channel tests
+            // e.g. https://hydra.nixos.org/job/nixpkgs/trunk/unstable
+            Some(arch) if arch.is_empty() => "".into(),
             Some(arch) => format!(".{arch}"),
         };
 
