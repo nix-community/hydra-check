@@ -209,9 +209,12 @@ impl JobsetReport<'_> {
 }
 
 impl ResolvedArgs {
-    pub(crate) fn fetch_and_print_jobset(&self, summary: bool) -> anyhow::Result<Option<u64>> {
+    pub(crate) fn fetch_and_print_jobset(
+        &self,
+        force_summary: bool,
+    ) -> anyhow::Result<Option<u64>> {
         let stat = JobsetReport::from(self);
-        let (short, json) = match summary {
+        let (short, json) = match force_summary {
             true => (true, false),
             false => (self.short, self.json),
         };

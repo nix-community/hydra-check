@@ -5,6 +5,7 @@
 set -euo pipefail
 
 NEWVERSION="$1"
+REPO=nix-community/hydra-check
 
 if [[ $NEWVERSION == "" ]]; then
     echo "No version specified!"
@@ -14,8 +15,13 @@ fi
 cargo set-version "$NEWVERSION"
 cargo build
 
-# Commit and tag the update
+# commit the update
 git add --patch Cargo.toml Cargo.lock
 git commit -m "build(release): v${NEWVERSION}"
-git push origin "$(git branch --show-current)"
-gh release create "v${NEWVERSION}" -t "v${NEWVERSION}" --target "$(git branch --show-current)" --generate-notes
+
+# push & tag
+set -x
+CURRENT_BRANCH="$(git branch --show-current)"
+REMOTE=$(git remote --verbose | grep "REPO" | uniq)
+git push "$REMOTE" "$CURRENT_BRANCH"
+gh release --repo "$REPO" create "v${NEWVERSION}" -t "v${NEWVERSION}" --prerelease --target "$CURRENT_BRANCH" --generate-notes

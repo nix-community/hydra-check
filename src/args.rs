@@ -220,7 +220,9 @@ impl HydraCheckCli {
         let arch_suffix = match self.arch.clone() {
             _ if has_known_arch_suffix => "".into(),
             None => warn_unknown_arch(),
-            Some(arch) if arch.is_empty() => warn_unknown_arch(),
+            // empty --arch is useful for aggregate job such as the channel tests
+            // e.g. https://hydra.nixos.org/job/nixpkgs/trunk/unstable
+            Some(arch) if arch.is_empty() => "".into(),
             Some(arch) => format!(".{arch}"),
         };
 
@@ -343,7 +345,7 @@ impl ResolvedArgs {
     pub(crate) fn fetch_and_print(&self) -> anyhow::Result<bool> {
         match &self.queries {
             Queries::Jobset => {
-                self.fetch_and_print_jobset(self.short)?;
+                self.fetch_and_print_jobset(false)?;
                 Ok(true)
             }
             Queries::Packages(packages) => self.fetch_and_print_packages(packages),

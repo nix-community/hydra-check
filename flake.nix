@@ -30,6 +30,9 @@
             nixfmt-rfc-style # for formatting nix code
           ] ++ nativeBuildInputs;
 
+          # use cached crates in "$HOME/.cargo"
+          cargoDeps = pkgs.emptyDirectory;
+
           env = with pkgs.buildPackages; {
             # for developments, e.g. symbol lookup in std library
             RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
