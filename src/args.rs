@@ -145,6 +145,14 @@ impl HydraCheckCli {
         // https://wiki.nixos.org/wiki/Channel_branches
         // https://github.com/NixOS/infra/blob/master/channels.nix
         let (nixpkgs, nixos) = ("nixpkgs/trunk", "nixos/trunk-combined");
+        let jobset_stable = |version: &str| {
+            match self.arch {
+                // darwin
+                Some(ref x) if x.ends_with("darwin") => format!("nixpkgs/nixpkgs-{version}-darwin"),
+                // others
+                _ => format!("nixos/release-{version}"),
+            }
+        };
         let jobset: String = match self.channel.as_str() {
             "master" | "nixpkgs-unstable" => nixpkgs.into(),
             "nixos-unstable" => nixos.into(),
@@ -160,7 +168,7 @@ impl HydraCheckCli {
                 _ => nixpkgs.into(),
             },
             "stable" => {
-                let ver = match NixpkgsChannelVersion::stable() {
+                let version = match NixpkgsChannelVersion::stable() {
                     Ok(version) => version,
                     Err(err) => {
                         error!(
@@ -172,17 +180,10 @@ impl HydraCheckCli {
                         std::process::exit(1);
                     }
                 };
-                match self.arch.clone() {
-                    // darwin
-                    Some(x) if x.ends_with("darwin") => format!("nixpkgs/nixpkgs-{ver}-darwin"),
-                    // others
-                    _ => format!("nixos/release-{ver}"),
-                }
+                jobset_stable(&version)
             }
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
-            x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => {
-                format!("nixos/release-{x}")
-            }
+            x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => jobset_stable(x),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixos", "nixos/release", 1)
             }
