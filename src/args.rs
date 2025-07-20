@@ -144,28 +144,26 @@ impl HydraCheckCli {
         }
         // https://wiki.nixos.org/wiki/Channel_branches
         // https://github.com/NixOS/infra/blob/master/channels.nix
-        let (nixpkgs, nixos) = ("nixpkgs/trunk", "nixos/trunk-combined");
-        let jobset_stable = |version: &str| {
+        let (nixpkgs_unstable, nixos_unstable) = ("nixpkgs-unstable", "nixos-unstable");
+        let channel_stable = |version: &str| {
             match self.arch {
                 // darwin
-                Some(ref x) if x.ends_with("darwin") => format!("nixpkgs/nixpkgs-{version}-darwin"),
+                Some(ref x) if x.ends_with("darwin") => format!("nixpkgs-{version}-darwin"),
                 // others
-                _ => format!("nixos/release-{version}"),
+                _ => format!("nixos-{version}"),
             }
         };
-        let jobset: String = match self.channel.as_str() {
-            "master" | "nixpkgs-unstable" => nixpkgs.into(),
-            "nixos-unstable" => nixos.into(),
-            "nixos-unstable-small" => "nixos/unstable-small".into(),
+        let channel: String = match self.channel.as_str() {
+            "master" => nixpkgs_unstable.into(),
             "unstable" => match (Path::new("/etc/NIXOS").exists(), &self.arch) {
                 (true, Some(arch))
                     if Vec::from(constants::NIXOS_ARCHITECTURES).contains(&arch.as_str()) =>
                 {
                     // only returns the NixOS jobset if the current system is NixOS
                     // and the --arch is a NixOS supported system.
-                    nixos.into()
+                    nixos_unstable.into()
                 }
-                _ => nixpkgs.into(),
+                _ => nixpkgs_unstable.into(),
             },
             "stable" => {
                 let version = match NixpkgsChannelVersion::stable() {
@@ -180,21 +178,29 @@ impl HydraCheckCli {
                         std::process::exit(1);
                     }
                 };
-                jobset_stable(&version)
+                channel_stable(&version)
             }
+            x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => channel_stable(x),
+            x => x.into(),
+        };
+        debug!("--channel resolves to '{channel}'");
+        let jobset: String = match channel.as_str() {
+            "nixpkgs-unstable" => "nixpkgs/trunk".into(),
+            "nixos-unstable" => "nixos/trunk-combined".into(),
+            "nixos-unstable-small" => "nixos/unstable-small".into(),
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
-            x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => jobset_stable(x),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixos", "nixos/release", 1)
             }
             x if Regex::new(r"^nixpkgs-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixpkgs", "nixpkgs/nixpkgs", 1)
             }
-            _ => self.channel.clone(),
+            x => x.into(),
         };
-        debug!("--channel '{}' implies --jobset '{}'", self.channel, jobset);
+        debug!("--channel '{channel}' implies --jobset '{jobset}'");
         Self {
             jobset: Some(jobset),
+            channel,
             ..self
         }
     }
