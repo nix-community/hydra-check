@@ -102,7 +102,7 @@ impl HydraCheckCli {
             if !Vec::from(constants::KNOWN_ARCHITECTURES).contains(&arch) {
                 warn!(
                     "unknown --arch '{arch}', {}: {:#?}",
-                    "consider specify one of the following known architectures",
+                    "consider specifying one of the following known architectures",
                     constants::KNOWN_ARCHITECTURES
                 );
             }
