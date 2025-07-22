@@ -1,7 +1,9 @@
 {
   lib,
+  stdenv,
   hydra-check,
   rustPlatform,
+  buildPackages,
   source ? builtins.path {
     # `builtins.path` works well with lazy trees
     name = "hydra-check-source";
@@ -28,8 +30,7 @@ hydra-check.overrideAttrs (
   {
     version,
     meta ? { },
-    nativeBuildInputs ? [ ],
-    nativeInstallCheckInputs ? [ ],
+    patches ? [ ],
     ...
   }:
   {
@@ -39,6 +40,12 @@ hydra-check.overrideAttrs (
         than the one provided in nixpkgs (${version}).
       '';
       newVersion;
+
+    patches =
+      patches
+      ++ lib.optional (
+        lib.hasPrefix "1.88" buildPackages.rustc.version && stdenv.buildPlatform.system == "x86_64-darwin"
+      ) ./fix-cargo-1_88-reqwest.patch;
 
     src = source;
 
