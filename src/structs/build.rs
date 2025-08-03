@@ -35,7 +35,7 @@ impl ShowHydraStatus for BuildStatus {
         match &self.job_name {
             Some(job_name) => row.push(job_name.as_str().into()),
             None => {}
-        };
+        }
         let details = if self.evals {
             let name = self.name.clone().unwrap_or_default().into();
             let timestamp = self

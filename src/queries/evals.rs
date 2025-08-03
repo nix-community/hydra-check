@@ -20,7 +20,8 @@ use std::fmt::Display;
 use insta::assert_snapshot;
 
 use crate::{
-    BuildStatus, EvalInput, Evaluation, FetchHydraReport, ResolvedArgs, SoupFind, StatusIcon,
+    constants::HYDRA_CHECK_HOST_URL, BuildStatus, EvalInput, Evaluation, FetchHydraReport,
+    ResolvedArgs, SoupFind, StatusIcon,
 };
 
 #[skip_serializing_none]
@@ -211,7 +212,7 @@ impl FetchHydraReport for EvalReport<'_> {
 
 impl<'a> From<&'a Evaluation> for EvalReport<'a> {
     fn from(eval: &'a Evaluation) -> Self {
-        let url = format!("https://hydra.nixos.org/eval/{}", eval.id);
+        let url = format!("{}/eval/{}", &*HYDRA_CHECK_HOST_URL, eval.id);
         let url = match &eval.filter {
             Some(x) => format!("{url}?filter={x}"),
             None => url,

@@ -8,7 +8,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 
 use crate::{
-    is_skipable_row, FetchHydraReport, ResolvedArgs, ShowHydraStatus, SoupFind, StatusIcon, TryAttr,
+    constants::HYDRA_CHECK_HOST_URL, is_skipable_row, FetchHydraReport, ResolvedArgs,
+    ShowHydraStatus, SoupFind, StatusIcon, TryAttr,
 };
 
 #[skip_serializing_none]
@@ -109,7 +110,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
         //
         // https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
         //
-        let url = format!("https://hydra.nixos.org/jobset/{}/evals", args.jobset);
+        let url = format!("{}/jobset/{}/evals", &*HYDRA_CHECK_HOST_URL, args.jobset);
         Self {
             jobset: &args.jobset,
             url,
