@@ -151,7 +151,7 @@ Queued Jobs:
 
 # Changelog
 
-## 2.0.0 Breaking changes
+## v2 Breaking changes
 - Rewritten in Rust
 - Always prints long outputs with all recent builds unless `--short` is explicitly specified
 - `--arch` defaults to the target architecture (instead of `x86_64-linux` all the time)
@@ -159,10 +159,12 @@ Queued Jobs:
 - The `staging` channel / alias is removed as `nixos/staging` is no longer active; instead we add `staging-next` as an alias for `nixpkgs/staging-next`
 - The default `unstable` channel points to `nixpkgs/trunk` on non-NixOS systems
 
-### Features
+# Features
 - Print recent evaluations of the jobset if no package is specified
 - Add an `--eval` flag for information about a specific evaluation
 - Infer the current stable Nixpkgs release (e.g. `24.05`) with a hack
 - Support standard channel names (e.g. `nixos-unstable`)
 - Generate shell completions with `--shell-completion SHELL`
 - Print nicely formatted, colored and aligned tables
+- Print information about the latest successful builds when a package fails
+- Allow overriding the default Hydra host URL for custom Hydra instances, with the environment variable `$HYDRA_CHECK_HOST_URL`
