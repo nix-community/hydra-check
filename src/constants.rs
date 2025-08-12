@@ -1,5 +1,8 @@
 //! Useful constants shared across the program
 
+use log::{debug, info};
+use std::sync::LazyLock;
+
 /// Currently supported systems (`supportedSystems`) on [hydra.nixos.org](https://hydra.nixos.org).
 ///
 /// This is invoked in the jobset: [nixpkgs/trunk](https://hydra.nixos.org/jobset/nixpkgs/trunk#tabs-configuration),
@@ -53,3 +56,56 @@ pub const DEFAULT_EVALUATION_FILTER: &str = "nixVersions.stable";
 /// ```
 ///
 pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+/// Host URL for the Hydra instance, can be overridden by an environment variable
+/// with the same name.
+///
+/// ```
+/// temp_env::with_var(
+///     "HYDRA_CHECK_HOST_URL", None::<&str>, // when the env var is unset
+///     || assert_eq!(
+///         &*hydra_check::constants::HYDRA_CHECK_HOST_URL,
+///         "https://hydra.nixos.org"         // ... use the NixOS default
+///     )                                     // ... otherwise use the env var
+/// );
+/// ```
+///
+pub static HYDRA_CHECK_HOST_URL: LazyLock<String> = LazyLock::new(get_host_url);
+
+/// Gets the hydra host URL from the environment variable $HYDRA_CHECK_HOST_URL.
+/// Falls back to the default URL if the variable is not set or empty.
+fn get_host_url() -> String {
+    let var_name = "HYDRA_CHECK_HOST_URL";
+    let url_default = "https://hydra.nixos.org";
+    std::env::var(var_name)
+        .ok()
+        .map(|url_env| url_env.trim().to_string())
+        .filter(|url_env| {
+            let is_empty = url_env.is_empty();
+            match is_empty {
+                true => info!("${var_name} is set to an empty string"),
+                false => info!("using hydra host URL from ${var_name}: {url_env}"),
+            }
+            !is_empty
+        })
+        .unwrap_or_else(|| {
+            debug!("using default hydra host URL: {url_default}");
+            url_default.into()
+        })
+}
+
+#[test]
+fn host_url_once_lock() {
+    temp_env::with_var(
+        "HYDRA_CHECK_HOST_URL",
+        Some("https://hydra.example.com"),
+        || {
+            assert_eq!(&*HYDRA_CHECK_HOST_URL, "https://hydra.example.com");
+        },
+    );
+    // once the lazy static is initialized, it cannot be altered
+    // even if the environment variable is changed
+    temp_env::with_var("HYDRA_CHECK_HOST_URL", None::<&str>, || {
+        assert_eq!(&*HYDRA_CHECK_HOST_URL, "https://hydra.example.com");
+    });
+}

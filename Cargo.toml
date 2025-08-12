@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/nix-community/hydra-check"
 keywords = ["cli"]
 categories = ["command-line-utilities"]
+rust-version = "1.80" # for std::sync::LazyLock
 
 [dependencies]
 anyhow = "1.0.89"
@@ -27,6 +28,7 @@ serde_with = { version = "3.11.0", default-features = false, features = ["macros
 
 [dev-dependencies]
 insta = "1.41.1"
+temp-env = "0.3.6"
 
 [build-dependencies]
 anyhow = "1.0.89"

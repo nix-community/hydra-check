@@ -6,7 +6,10 @@ use indexmap::IndexMap;
 use log::info;
 
 use super::builds::BuildReport;
-use crate::{structs::BuildStatus, FetchHydraReport, ResolvedArgs, StatusIcon};
+use crate::{
+    constants::HYDRA_CHECK_HOST_URL, structs::BuildStatus, FetchHydraReport, ResolvedArgs,
+    StatusIcon,
+};
 
 #[derive(Clone)]
 /// Container for the build status and metadata of a package
@@ -46,7 +49,7 @@ impl<'a> PackageReport<'a> {
         //
         // There is also {url}/all which is a lot slower.
         //
-        let url = format!("https://hydra.nixos.org/job/{}/{}", args.jobset, package);
+        let url = format!("{}/job/{}/{}", &*HYDRA_CHECK_HOST_URL, args.jobset, package);
         Self {
             package,
             url,
