@@ -194,7 +194,11 @@ impl HydraCheckCli {
             "nixpkgs-unstable" => "nixpkgs/trunk".into(),
             "nixos-unstable" => "nixos/trunk-combined".into(),
             "nixos-unstable-small" => "nixos/unstable-small".into(),
-            x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
+            // https://hydra.nixos.org/project/nixos
+            x if x.starts_with("staging") && x.ends_with("-small") => format!("nixos/{x}"),
+            // `nixos/staging` is abandoned while `nixpkgs/staging` is active
+            // https://hydra.nixos.org/project/nixpkgs
+            x if x.starts_with("staging") => format!("nixpkgs/{x}"),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixos", "nixos/release", 1)
             }
@@ -373,6 +377,12 @@ fn guess_jobset() {
         ("24.05", "nixos/release-24.05"),
         ("nixos-23.05", "nixos/release-23.05"),
         ("nixos-23.11-small", "nixos/release-23.11-small"),
+        ("nixpkgs-25.05-darwin", "nixpkgs/nixpkgs-25.05-darwin"),
+        ("staging", "nixpkgs/staging"),
+        ("staging-next", "nixpkgs/staging-next"),
+        ("staging-next-small", "nixos/staging-next-small"),
+        ("staging-next-24.11", "nixpkgs/staging-next-24.11"),
+        ("staging-next-24.11-small", "nixos/staging-next-24.11-small"),
     ];
     for (channel, jobset) in aliases {
         eprintln!("{channel} => {jobset}");
@@ -397,6 +407,20 @@ fn guess_darwin() {
 #[test]
 #[ignore = "require internet connection"]
 fn guess_stable() {
-    let args = HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
+    let args: HydraCheckCli =
+        HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
     eprintln!("{:?}", args.jobset);
+    assert!(args.jobset.is_some_and(|x| x.starts_with("nixos/release-")));
+    let args: HydraCheckCli = HydraCheckCli::parse_from([
+        "hydra-check",
+        "--channel",
+        "stable",
+        "--arch",
+        "aarch64-darwin", // apple silicon
+    ])
+    .guess_jobset();
+    eprintln!("{:?}", args.jobset);
+    assert!(args
+        .jobset
+        .is_some_and(|x| x.starts_with("nixpkgs/nixpkgs-") && x.ends_with("darwin")));
 }
