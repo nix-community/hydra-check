@@ -2,8 +2,13 @@ use anyhow::bail;
 use log::debug;
 use scraper::Html;
 use serde::Deserialize;
+use std::sync::OnceLock;
 
 use crate::{SoupFind, TryAttr};
+
+/// Static cache for the current stable version of Nixpkgs, set and used
+/// internally by [`NixpkgsChannelVersion::stable()`].
+static NIXPKGS_STABLE_VERSION: OnceLock<String> = OnceLock::new();
 
 /// Currently supported Nixpkgs channel version
 ///
@@ -43,7 +48,24 @@ impl NixpkgsChannelVersion {
 
     /// Fetches the current stable version number of Nixpkgs
     pub fn stable() -> anyhow::Result<String> {
-        Self::fetch_channel("stable")
+        if let Some(version) = NIXPKGS_STABLE_VERSION.get() {
+            return Ok(version.clone());
+        }
+
+        let version = Self::fetch_channel("stable")?;
+        let new_version = version.clone();
+        std::thread::spawn(move || {
+            NIXPKGS_STABLE_VERSION
+                .set(new_version.clone())
+                .unwrap_or_else(|cached_version| {
+                    if new_version != cached_version {
+                        debug!(
+                            "failed to cache the stable version '{new_version}': found already cached version '{cached_version}'"
+                        );
+                    }
+                });
+        });
+        Ok(version)
     }
 }
 
