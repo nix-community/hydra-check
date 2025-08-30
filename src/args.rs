@@ -62,6 +62,10 @@ pub struct HydraCheckCli {
     #[arg(short, long)]
     short: bool,
 
+    /// Fetch more entries if possible (might be slower)
+    #[arg(short, long, conflicts_with = "short")]
+    more: bool,
+
     /// System architecture to check
     #[arg(short, long)]
     arch: Option<String>,
@@ -89,12 +93,14 @@ pub struct HydraCheckCli {
 
 /// Resolved command line arguments, with all options normalized and unwrapped
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub(crate) struct ResolvedArgs {
     /// List of packages or evals to query
     pub(crate) queries: Queries,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
+    pub(crate) more: bool,
     pub(crate) jobset: String,
 }
 
@@ -276,7 +282,7 @@ impl HydraCheckCli {
     fn guess_evals(&self) -> Vec<Evaluation> {
         let mut evals = Vec::new();
         for spec in &self.queries {
-            evals.push(Evaluation::guess_from_spec(spec));
+            evals.push(Evaluation::guess_from_spec(spec, self.more));
         }
         evals
     }
@@ -335,7 +341,7 @@ impl HydraCheckCli {
         let queries = match (args.queries.is_empty(), args.eval) {
             (true, false) => Queries::Jobset,
             // this would resolve to the latest eval of a jobset:
-            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("")]),
+            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("", args.more)]),
             (false, true) => Queries::Evals(args.guess_evals()),
             (false, false) => Queries::Packages(args.guess_packages()),
         };
@@ -344,6 +350,7 @@ impl HydraCheckCli {
             url: args.url,
             json: args.json,
             short: args.short,
+            more: args.more,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),

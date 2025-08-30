@@ -49,7 +49,12 @@ impl<'a> PackageReport<'a> {
         //
         // There is also {url}/all which is a lot slower.
         //
-        let url = format!("{}/job/{}/{}", &*HYDRA_CHECK_HOST_URL, args.jobset, package);
+        let url = format!(
+            "{}/job/{}/{package}{}",
+            &*HYDRA_CHECK_HOST_URL,
+            args.jobset,
+            if args.more { "/all" } else { "" }
+        );
         Self {
             package,
             url,
@@ -113,6 +118,7 @@ impl ResolvedArgs {
                 continue; // print later
             }
             println!("{}", stat.format_table(self.short, &stat.builds));
+            let url_stripped = stat.get_url().trim_end_matches("/all");
             if !success {
                 if self.short {
                     info!("latest build failed, check out: {url_dimmed}");
@@ -121,22 +127,22 @@ impl ResolvedArgs {
                     #[rustfmt::skip]
                     eprintln!(
                         "{} (all builds)",
-                        format!("🔗 {url_dimmed}/all").dimmed()
+                        format!("🔗 {url_stripped}/all").dimmed()
                     );
                     eprintln!(
                         "{} (latest successful build)",
-                        format!("🔗 {url_dimmed}/latest").dimmed()
+                        format!("🔗 {url_stripped}/latest").dimmed()
                     );
                     eprintln!(
                         "{} (latest success from a finished eval)",
-                        format!("🔗 {url_dimmed}/latest-finished").dimmed()
+                        format!("🔗 {url_stripped}/latest-finished").dimmed()
                     );
 
                     eprintln!();
                 }
                 info!("showing inputs for the latest success from a finished eval...");
 
-                let url = format!("{}/latest-finished", stat.get_url());
+                let url = format!("{url_stripped}/latest-finished");
                 let build_report = BuildReport::from_url(&url);
                 let build_report = build_report.fetch_and_read()?;
                 for entry in &build_report.inputs {
