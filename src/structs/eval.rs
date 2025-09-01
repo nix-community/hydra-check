@@ -1,7 +1,9 @@
+use colored::{ColoredString, Colorize};
 use log::info;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 
-use crate::constants;
+use crate::{constants, ShowHydraStatus, StatusIcon};
 
 /// Specification for a single Hydra evaluation, with an optional filter.
 /// Should only be constructed with [`Evaluation::guess_from_spec`]
@@ -14,6 +16,73 @@ pub(crate) struct Evaluation {
     pub(crate) id: u64,
     pub(crate) filter: Option<String>,
     pub(crate) more: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Debug, Default, Clone)]
+/// Status of a single evaluation, can be serialized to a JSON entry
+pub(crate) struct EvalStatus {
+    pub(crate) icon: StatusIcon,
+    pub(crate) finished: Option<bool>,
+    pub(crate) id: Option<u64>,
+    pub(crate) url: Option<String>,
+    pub(crate) datetime: Option<String>,
+    pub(crate) relative: Option<String>,
+    pub(crate) timestamp: Option<u64>,
+    pub(crate) status: String,
+    pub(crate) short_rev: Option<String>,
+    pub(crate) input_changes: Option<String>,
+    pub(crate) succeeded: Option<u64>,
+    pub(crate) failed: Option<u64>,
+    pub(crate) queued: Option<u64>,
+    pub(crate) delta: Option<String>,
+}
+
+impl ShowHydraStatus for EvalStatus {
+    fn format_as_vec(&self) -> Vec<ColoredString> {
+        let mut row = Vec::new();
+        let icon = ColoredString::from(&self.icon);
+        let description = match &self.input_changes {
+            Some(x) => x,
+            None => &self.status,
+        };
+        row.push(format!("{icon} {description}").into());
+        let details = if self.url.is_some() {
+            let relative = self.relative.clone().unwrap_or_default().into();
+            let statistics = [
+                (StatusIcon::Succeeded, self.succeeded),
+                (StatusIcon::Failed, self.failed),
+                (StatusIcon::Queued, self.queued),
+            ];
+            let [suceeded, failed, queued] = statistics.map(|(icon, text)| -> ColoredString {
+                format!(
+                    "{} {}",
+                    ColoredString::from(&icon),
+                    text.unwrap_or_default()
+                )
+                .into()
+            });
+            let queued = match self.queued.unwrap_or_default() {
+                x if x != 0 => queued.bold(),
+                _ => queued.normal(),
+            };
+            let delta = format!(
+                "Δ {}",
+                match self.delta.clone().unwrap_or("~".into()).trim() {
+                    x if x.starts_with('+') => x.green(),
+                    x if x.starts_with('-') => x.red(),
+                    x => x.into(),
+                }
+            )
+            .into();
+            let url = self.url.clone().unwrap_or_default().dimmed();
+            &[relative, suceeded, failed, queued, delta, url]
+        } else {
+            &Default::default()
+        };
+        row.extend_from_slice(details);
+        row
+    }
 }
 
 impl Evaluation {
