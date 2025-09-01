@@ -307,6 +307,10 @@ impl HydraCheckCli {
     }
 
     fn guess_evals(&self) -> Vec<Evaluation> {
+        if self.queries.is_empty() {
+            // this would resolve to the latest eval of a jobset:
+            return vec![Evaluation::guess_from_spec("", self.long)];
+        }
         let mut evals = Vec::new();
         for spec in &self.queries {
             evals.push(Evaluation::guess_from_spec(spec, self.long));
@@ -365,12 +369,10 @@ impl HydraCheckCli {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let queries = match (args.queries.is_empty() && !args.tests, args.eval) {
-            (true, false) => Queries::Jobset,
-            // this would resolve to the latest eval of a jobset:
-            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("", args.long)]),
-            (false, true) => Queries::Evals(args.guess_evals()),
-            (false, false) => Queries::Packages(args.guess_packages()),
+        let queries = match (args.eval, !args.queries.is_empty() || args.tests) {
+            (true, _) => Queries::Evals(args.guess_evals()),
+            (_, true) => Queries::Packages(args.guess_packages()),
+            (_, false) => Queries::Jobset,
         };
         Ok(ResolvedArgs {
             queries,
