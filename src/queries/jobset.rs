@@ -2,86 +2,17 @@
 //! from an url like: <https://hydra.nixos.org/jobset/nixpkgs/trunk/evals>.
 
 use anyhow::bail;
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use indexmap::IndexMap;
-use serde::Serialize;
-use serde_with::skip_serializing_none;
 
 use crate::{
-    constants::HYDRA_CHECK_HOST_URL, is_skipable_row, FetchHydraReport, ResolvedArgs,
-    ShowHydraStatus, SoupFind, StatusIcon, TryAttr,
+    constants::HYDRA_CHECK_HOST_URL, is_skipable_row, EvalStatus, FetchHydraReport, ResolvedArgs,
+    SoupFind, StatusIcon, TryAttr,
 };
-
-#[skip_serializing_none]
-#[derive(Serialize, Debug, Default, Clone)]
-/// Status of a single evaluation, can be serialized to a JSON entry
-struct EvalStatus {
-    icon: StatusIcon,
-    finished: Option<bool>,
-    id: Option<u64>,
-    url: Option<String>,
-    datetime: Option<String>,
-    relative: Option<String>,
-    timestamp: Option<u64>,
-    status: String,
-    short_rev: Option<String>,
-    input_changes: Option<String>,
-    succeeded: Option<u64>,
-    failed: Option<u64>,
-    queued: Option<u64>,
-    delta: Option<String>,
-}
-
-impl ShowHydraStatus for EvalStatus {
-    fn format_as_vec(&self) -> Vec<ColoredString> {
-        let mut row = Vec::new();
-        let icon = ColoredString::from(&self.icon);
-        let description = match &self.input_changes {
-            Some(x) => x,
-            None => &self.status,
-        };
-        row.push(format!("{icon} {description}").into());
-        let details = if self.url.is_some() {
-            let relative = self.relative.clone().unwrap_or_default().into();
-            let statistics = [
-                (StatusIcon::Succeeded, self.succeeded),
-                (StatusIcon::Failed, self.failed),
-                (StatusIcon::Queued, self.queued),
-            ];
-            let [suceeded, failed, queued] = statistics.map(|(icon, text)| -> ColoredString {
-                format!(
-                    "{} {}",
-                    ColoredString::from(&icon),
-                    text.unwrap_or_default()
-                )
-                .into()
-            });
-            let queued = match self.queued.unwrap_or_default() {
-                x if x != 0 => queued.bold(),
-                _ => queued.normal(),
-            };
-            let delta = format!(
-                "Δ {}",
-                match self.delta.clone().unwrap_or("~".into()).trim() {
-                    x if x.starts_with('+') => x.green(),
-                    x if x.starts_with('-') => x.red(),
-                    x => x.into(),
-                }
-            )
-            .into();
-            let url = self.url.clone().unwrap_or_default().dimmed();
-            &[relative, suceeded, failed, queued, delta, url]
-        } else {
-            &Default::default()
-        };
-        row.extend_from_slice(details);
-        row
-    }
-}
 
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
-struct JobsetReport<'a> {
+pub(crate) struct JobsetReport<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
@@ -120,7 +51,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
 }
 
 impl JobsetReport<'_> {
-    fn fetch_and_read(self) -> anyhow::Result<Self> {
+    pub(crate) fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "") {
             Err(stat) => return Ok(stat),

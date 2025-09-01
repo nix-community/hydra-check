@@ -24,7 +24,7 @@ pub use fetch_stable::NixpkgsChannelVersion;
 
 use args::ResolvedArgs;
 use soup::{SoupFind, TryAttr};
-use structs::{BuildStatus, EvalInput, Evaluation, StatusIcon};
+use structs::{BuildStatus, EvalInput, EvalStatus, Evaluation, StatusIcon};
 
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
