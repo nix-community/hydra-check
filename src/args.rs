@@ -10,6 +10,8 @@ use std::{
 
 use crate::{constants, log_format, Evaluation, NixpkgsChannelVersion};
 
+const DEFAULT_CHANNEL: &str = "unstable";
+
 #[derive(Debug, Clone)]
 pub(crate) enum Queries {
     Jobset,
@@ -65,8 +67,8 @@ pub struct HydraCheckCli {
     arch: Option<String>,
 
     /// Channel to check packages for
-    #[arg(short, long, default_value = "unstable")]
-    channel: String,
+    #[arg(short, long)]
+    channel: Option<String>,
 
     /// Specify jobset to check packages for
     #[arg(long, conflicts_with = "channel")]
@@ -140,8 +142,12 @@ impl HydraCheckCli {
     #[allow(clippy::missing_panics_doc)]
     pub fn guess_jobset(self) -> Self {
         if self.jobset.is_some() {
-            return self;
+            return Self {
+                channel: None,
+                ..self
+            };
         }
+        let channel = self.channel.unwrap_or(DEFAULT_CHANNEL.into());
         // https://wiki.nixos.org/wiki/Channel_branches
         // https://github.com/NixOS/infra/blob/master/channels.nix
         let (nixpkgs_unstable, nixos_unstable) = ("nixpkgs-unstable", "nixos-unstable");
@@ -153,9 +159,9 @@ impl HydraCheckCli {
                 _ => format!("nixos-{version}"),
             }
         };
-        let channel: String = match self.channel.as_str() {
+        let channel: String = match channel.as_str() {
             "master" => nixpkgs_unstable.into(),
-            "unstable" => match (Path::new("/etc/NIXOS").exists(), &self.arch) {
+            DEFAULT_CHANNEL => match (Path::new("/etc/NIXOS").exists(), &self.arch) {
                 (true, Some(arch))
                     if Vec::from(constants::NIXOS_ARCHITECTURES).contains(&arch.as_str()) =>
                 {
@@ -200,7 +206,7 @@ impl HydraCheckCli {
         debug!("--channel '{channel}' implies --jobset '{jobset}'");
         Self {
             jobset: Some(jobset),
-            channel,
+            channel: Some(channel),
             ..self
         }
     }
