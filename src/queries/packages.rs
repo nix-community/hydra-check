@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 
 use super::builds::BuildReport;
 use crate::{
-    constants::HYDRA_CHECK_HOST_URL,
+    constants,
     queries::jobset::JobsetReport,
     structs::{BuildStatus, EvalStatus, ReleaseStatus},
     FetchHydraReport, ResolvedArgs, StatusIcon,
@@ -54,7 +54,7 @@ impl<'a> PackageReport<'a> {
         //
         let url = format!(
             "{}/job/{}/{package}{}",
-            &*HYDRA_CHECK_HOST_URL,
+            &*constants::HYDRA_CHECK_HOST_URL,
             args.jobset,
             if args.long { "/all" } else { "" }
         );
