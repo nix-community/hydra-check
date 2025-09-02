@@ -25,6 +25,7 @@ scraper = "0.20.0"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.132"
 serde_with = { version = "3.11.0", default-features = false, features = ["macros"] }
+yansi = { version = "1.0.1", features = ["hyperlink"] }
 
 [dev-dependencies]
 insta = "1.41.1"
