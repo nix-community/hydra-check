@@ -89,6 +89,15 @@ impl ResolvedArgs {
                 continue;
             }
             let url_dimmed = stat.get_url().dimmed();
+            let channel = self.channel.as_deref().unwrap_or_default();
+            let jobset_report = if self.releases {
+                info!("fetching recent evals on --channel '{channel}' for --releases");
+                let jobset_report = JobsetReport::from(self).fetch_and_read()?;
+                eprintln!();
+                Some(jobset_report)
+            } else {
+                None
+            };
             if !self.json {
                 // print title first, then fetch
                 if idx > 0 && !self.short {
@@ -104,11 +113,6 @@ impl ResolvedArgs {
                 }
             }
             let stat = stat.fetch_and_read()?;
-            let jobset_report = if self.releases {
-                Some(JobsetReport::from(self).fetch_and_read()?)
-            } else {
-                None
-            };
             let first_stat = stat.builds.first();
             let success = first_stat.is_some_and(|build| build.success);
             if !success {
@@ -121,42 +125,16 @@ impl ResolvedArgs {
                     .filter_map(|eval| {
                         let short_rev = eval.short_rev.as_deref().unwrap_or_default();
                         let mut test_builds = stat.builds.clone();
-                        for idx in 0..test_builds.len() {
-                            let test_build = test_builds[idx].clone();
+                        for index in 0..test_builds.len() {
+                            let test_build = test_builds[index].clone();
                             if test_build
                                 .name
                                 .as_deref()
                                 .unwrap_or_default()
                                 .contains(short_rev)
                             {
-                                test_builds.remove(idx);
-                                let channel = self.channel.as_deref().unwrap_or_default();
-                                let release_url = if test_build.success
-                                    && eval.finished.unwrap_or_default()
-                                    && (
-                                        channel.starts_with("nixpkgs-")
-                                            || channel.starts_with("nixos-")
-                                        // see: https://channels.nixos.org
-                                    )
-                                    && constants::is_default_host_url()
-                                {
-                                    Some(format!(
-                                        "https://releases.nixos.org/{}/{}",
-                                        if channel == "nixpkgs-unstable" {
-                                            "nixpkgs".into()
-                                        } else {
-                                            channel.replacen('-', "/", 1)
-                                        },
-                                        test_build.name.as_deref().unwrap_or_default()
-                                    ))
-                                } else {
-                                    None
-                                };
-                                return Some(ReleaseStatus {
-                                    eval: eval.clone(),
-                                    test: test_build,
-                                    release_url,
-                                });
+                                test_builds.remove(index);
+                                return Some(ReleaseStatus::new(eval.clone(), test_build, channel));
                             }
                         }
                         None

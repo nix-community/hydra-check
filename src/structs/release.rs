@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use yansi::hyperlink::HyperlinkExt;
 
-use crate::{BuildStatus, EvalStatus, ShowHydraStatus, StatusIcon};
+use crate::{constants, BuildStatus, EvalStatus, ShowHydraStatus, StatusIcon};
 
 /// Container for the evaluation and test build status of a (potential)
 /// channel release.
@@ -104,5 +104,34 @@ impl ShowHydraStatus for ReleaseStatus {
         };
         row.push(test_status.into());
         row
+    }
+}
+
+impl ReleaseStatus {
+    pub(crate) fn new(eval: EvalStatus, test: BuildStatus, channel: &str) -> Self {
+        let release_url = if constants::is_default_host_url()
+            && test.success
+            && eval.finished.unwrap_or_default()
+            && (
+                channel.starts_with("nixpkgs-") || channel.starts_with("nixos-")
+                // see: https://channels.nixos.org
+            ) {
+            Some(format!(
+                "https://releases.nixos.org/{}/{}",
+                if channel == "nixpkgs-unstable" {
+                    "nixpkgs".into()
+                } else {
+                    channel.replacen('-', "/", 1)
+                },
+                test.name.as_deref().unwrap_or_default()
+            ))
+        } else {
+            None
+        };
+        Self {
+            eval,
+            test,
+            release_url,
+        }
     }
 }
