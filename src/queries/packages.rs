@@ -7,8 +7,10 @@ use log::info;
 
 use super::builds::BuildReport;
 use crate::{
-    constants::HYDRA_CHECK_HOST_URL, structs::BuildStatus, FetchHydraReport, ResolvedArgs,
-    StatusIcon,
+    constants::HYDRA_CHECK_HOST_URL,
+    queries::jobset::JobsetReport,
+    structs::{BuildStatus, ReleaseStatus},
+    FetchHydraReport, ResolvedArgs, StatusIcon,
 };
 
 #[derive(Clone)]
@@ -74,9 +76,12 @@ impl<'a> PackageReport<'a> {
 }
 
 impl ResolvedArgs {
+    // TODO: refactor
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn fetch_and_print_packages(&self, packages: &[String]) -> anyhow::Result<bool> {
         let mut status = true;
-        let mut indexmap = IndexMap::new();
+        let mut all_builds = IndexMap::new();
+        let mut all_releases = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
             let stat = PackageReport::from_package_with_args(package, self);
             if self.url {
@@ -99,25 +104,103 @@ impl ResolvedArgs {
                 }
             }
             let stat = stat.fetch_and_read()?;
+            let jobset_report = if self.releases {
+                Some(JobsetReport::from(self).fetch_and_read()?)
+            } else {
+                None
+            };
             let first_stat = stat.builds.first();
             let success = first_stat.is_some_and(|build| build.success);
             if !success {
                 status = false;
             }
+            let release_stats = if let Some(jobset_report) = jobset_report {
+                jobset_report
+                    .evals
+                    .iter()
+                    .filter_map(|eval| {
+                        let short_rev = eval.short_rev.as_deref().unwrap_or_default();
+                        let mut test_builds = stat.builds.clone();
+                        for idx in 0..test_builds.len() {
+                            let test_build = test_builds[idx].clone();
+                            if test_build
+                                .name
+                                .as_deref()
+                                .unwrap_or_default()
+                                .contains(short_rev)
+                            {
+                                let channel = self.channel.as_deref().unwrap_or_default();
+                                let release_url = if test_build.success
+                                    && eval.finished.unwrap_or_default()
+                                    && (
+                                        channel.starts_with("nixpkgs-")
+                                            || channel.starts_with("nixos-")
+                                        // see: https://channels.nixos.org
+                                    ) {
+                                    test_builds.remove(idx);
+                                    Some(format!(
+                                        "https://releases.nixos.org/{}/{}",
+                                        if channel == "nixpkgs-unstable" {
+                                            "nixpkgs".into()
+                                        } else {
+                                            channel.replacen('-', "/", 1)
+                                        },
+                                        test_build.name.as_deref().unwrap_or_default()
+                                    ))
+                                } else {
+                                    None
+                                };
+                                return Some(ReleaseStatus {
+                                    eval: eval.clone(),
+                                    test: test_build,
+                                    release_url,
+                                });
+                            }
+                        }
+                        None
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                vec![]
+            };
             if self.json {
-                match self.short {
-                    true => indexmap.insert(
-                        stat.package,
-                        match first_stat {
-                            Some(x) => vec![x.to_owned()],
-                            None => vec![],
-                        },
-                    ),
-                    false => indexmap.insert(stat.package, stat.builds),
+                let key = if self.releases {
+                    self.channel
+                        .as_deref()
+                        .expect("--channel must be set when --releases is used")
+                } else {
+                    stat.package
                 };
+                if self.releases {
+                    match self.short {
+                        true => all_releases.insert(
+                            key,
+                            match release_stats.first() {
+                                Some(x) => vec![x.to_owned()],
+                                None => vec![],
+                            },
+                        ),
+                        false => all_releases.insert(key, release_stats),
+                    };
+                } else {
+                    match self.short {
+                        true => all_builds.insert(
+                            key,
+                            match first_stat {
+                                Some(x) => vec![x.to_owned()],
+                                None => vec![],
+                            },
+                        ),
+                        false => all_builds.insert(key, stat.builds),
+                    };
+                }
                 continue; // print later
             }
-            println!("{}", stat.format_table(self.short, &stat.builds));
+            if self.releases {
+                println!("{}", stat.format_table(self.short, &release_stats));
+            } else {
+                println!("{}", stat.format_table(self.short, &stat.builds));
+            }
             let url_stripped = stat.get_url().trim_end_matches("/all");
             if !success {
                 if self.short {
@@ -158,7 +241,10 @@ impl ResolvedArgs {
             }
         }
         if self.json {
-            println!("{}", serde_json::to_string_pretty(&indexmap)?);
+            match self.releases {
+                true => println!("{}", serde_json::to_string_pretty(&all_releases)?),
+                false => println!("{}", serde_json::to_string_pretty(&all_builds)?),
+            }
         }
         Ok(status)
     }
