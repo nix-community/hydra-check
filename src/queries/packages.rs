@@ -7,7 +7,7 @@ use log::info;
 
 use super::builds::BuildReport;
 use crate::{
-    constants::HYDRA_CHECK_HOST_URL,
+    constants,
     queries::jobset::JobsetReport,
     structs::{BuildStatus, ReleaseStatus},
     FetchHydraReport, ResolvedArgs, StatusIcon,
@@ -53,7 +53,7 @@ impl<'a> PackageReport<'a> {
         //
         let url = format!(
             "{}/job/{}/{package}{}",
-            &*HYDRA_CHECK_HOST_URL,
+            &*constants::HYDRA_CHECK_HOST_URL,
             args.jobset,
             if args.more { "/all" } else { "" }
         );
@@ -129,6 +129,7 @@ impl ResolvedArgs {
                                 .unwrap_or_default()
                                 .contains(short_rev)
                             {
+                                test_builds.remove(idx);
                                 let channel = self.channel.as_deref().unwrap_or_default();
                                 let release_url = if test_build.success
                                     && eval.finished.unwrap_or_default()
@@ -136,8 +137,9 @@ impl ResolvedArgs {
                                         channel.starts_with("nixpkgs-")
                                             || channel.starts_with("nixos-")
                                         // see: https://channels.nixos.org
-                                    ) {
-                                    test_builds.remove(idx);
+                                    )
+                                    && constants::is_default_host_url()
+                                {
                                     Some(format!(
                                         "https://releases.nixos.org/{}/{}",
                                         if channel == "nixpkgs-unstable" {
