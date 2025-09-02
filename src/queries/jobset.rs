@@ -16,7 +16,7 @@ pub(crate) struct JobsetReport<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
-    evals: Vec<EvalStatus>,
+    pub(crate) evals: Vec<EvalStatus>,
 }
 
 impl FetchHydraReport for JobsetReport<'_> {

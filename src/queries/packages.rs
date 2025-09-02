@@ -4,11 +4,14 @@
 use colored::Colorize;
 use indexmap::IndexMap;
 use log::info;
+use std::collections::VecDeque;
 
 use super::builds::BuildReport;
 use crate::{
-    constants::HYDRA_CHECK_HOST_URL, structs::BuildStatus, FetchHydraReport, ResolvedArgs,
-    StatusIcon,
+    constants::HYDRA_CHECK_HOST_URL,
+    queries::jobset::JobsetReport,
+    structs::{BuildStatus, EvalStatus, ReleaseStatus},
+    FetchHydraReport, ResolvedArgs, StatusIcon,
 };
 
 #[derive(Clone)]
@@ -74,16 +77,32 @@ impl<'a> PackageReport<'a> {
 }
 
 impl ResolvedArgs {
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn fetch_and_print_packages(&self, packages: &[String]) -> anyhow::Result<bool> {
         let mut status = true;
-        let mut indexmap = IndexMap::new();
+        let mut all_builds = IndexMap::new();
+        let mut all_releases = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
+            // postpone fetching until after the title is printed
             let stat = PackageReport::from_package_with_args(package, self);
             if self.url {
                 println!("{}", stat.get_url());
                 continue;
             }
             let url_dimmed = stat.get_url().dimmed();
+            let maybe_channel = self.channel.as_deref();
+            let (channel, jobset_report) = if self.releases {
+                let channel = maybe_channel.expect("--channel must be set when --releases is used");
+                info!(
+                    "fetching recent evals on --channel {} for --releases",
+                    channel.bold()
+                );
+                let jobset_report = JobsetReport::from(self).fetch_and_read()?;
+                eprintln!();
+                (channel, Some(jobset_report))
+            } else {
+                (maybe_channel.unwrap_or_default(), None)
+            };
             if !self.json {
                 // print title first, then fetch
                 if idx > 0 && !self.short {
@@ -104,20 +123,52 @@ impl ResolvedArgs {
             if !success {
                 status = false;
             }
-            if self.json {
-                match self.short {
-                    true => indexmap.insert(
-                        stat.package,
-                        match first_stat {
-                            Some(x) => vec![x.to_owned()],
-                            None => vec![],
-                        },
-                    ),
-                    false => indexmap.insert(stat.package, stat.builds),
+            let release_stats = if let Some(jobset_report) = jobset_report {
+                // mutable refs that is quick to remove from the front
+                let mut test_builds: VecDeque<&BuildStatus> = stat.builds.iter().collect();
+                let filter_eval = |eval: EvalStatus| {
+                    let short_rev = eval.short_rev.as_deref().unwrap_or_default();
+                    for index in 0..test_builds.len() {
+                        if test_builds[index]
+                            .name
+                            .as_deref()
+                            .unwrap_or_default()
+                            .contains(short_rev)
+                        {
+                            let test = test_builds.remove(index)?.clone();
+                            return Some(ReleaseStatus::new(eval, test, channel));
+                        }
+                    }
+                    None
                 };
+                jobset_report
+                    .evals
+                    .into_iter()
+                    .filter_map(filter_eval)
+                    .collect()
+            } else {
+                vec![]
+            };
+            if self.json {
+                if self.releases {
+                    let release_stats = match self.short {
+                        true => release_stats.first().cloned().into_iter().collect(),
+                        false => release_stats,
+                    };
+                    all_releases.insert(channel, release_stats);
+                } else {
+                    let build_stats = match self.short {
+                        true => first_stat.cloned().into_iter().collect(),
+                        false => stat.builds,
+                    };
+                    all_builds.insert(stat.package, build_stats);
+                }
                 continue; // print later
             }
-            println!("{}", stat.format_table(self.short, &stat.builds));
+            match self.releases {
+                true => println!("{}", stat.format_table(self.short, &release_stats)),
+                false => println!("{}", stat.format_table(self.short, &stat.builds)),
+            }
             let url_stripped = stat.get_url().trim_end_matches("/all");
             if !success {
                 if self.short {
@@ -143,8 +194,7 @@ impl ResolvedArgs {
                 info!("showing inputs for the latest success from a finished eval...");
 
                 let url = format!("{url_stripped}/latest-finished");
-                let build_report = BuildReport::from_url(&url);
-                let build_report = build_report.fetch_and_read()?;
+                let build_report = BuildReport::from_url(&url).fetch_and_read()?;
                 for entry in &build_report.inputs {
                     if self.short {
                         if let (Some(name), Some(rev)) = (&entry.name, &entry.revision) {
@@ -158,7 +208,10 @@ impl ResolvedArgs {
             }
         }
         if self.json {
-            println!("{}", serde_json::to_string_pretty(&indexmap)?);
+            match self.releases {
+                true => println!("{}", serde_json::to_string_pretty(&all_releases)?),
+                false => println!("{}", serde_json::to_string_pretty(&all_builds)?),
+            }
         }
         Ok(status)
     }

@@ -1,4 +1,4 @@
-use clap::{arg, command, value_parser, CommandFactory, Parser};
+use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
 use flexi_logger::Logger;
 use log::{debug, error, warn};
@@ -63,7 +63,11 @@ pub struct HydraCheckCli {
     short: bool,
 
     /// Fetch more entries if possible (might be slower)
-    #[arg(short, long, conflicts_with = "short")]
+    #[arg(
+        short,
+        long,
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
     long: bool,
 
     /// System architecture to check
@@ -83,8 +87,16 @@ pub struct HydraCheckCli {
     eval: bool,
 
     /// Query the release tests of the given channel (jobset)
-    #[arg(short, long, conflicts_with = "PACKAGES")]
+    #[arg(
+        short, long, conflicts_with_all = ["PACKAGES", "eval"],
+        // --releases implies --tests
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
     tests: bool,
+
+    /// Combine information from channel evals and release --tests
+    #[arg(short, long, conflicts_with_all = ["PACKAGES", "eval"])]
+    releases: bool,
 
     /// Print more debugging information
     #[arg(short, long)]
@@ -105,6 +117,8 @@ pub(crate) struct ResolvedArgs {
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) long: bool,
+    pub(crate) releases: bool,
+    pub(crate) channel: Option<String>,
     pub(crate) jobset: String,
 }
 
@@ -380,6 +394,8 @@ impl HydraCheckCli {
             json: args.json,
             short: args.short,
             long: args.long,
+            releases: args.releases,
+            channel: args.channel,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
