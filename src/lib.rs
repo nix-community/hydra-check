@@ -28,6 +28,7 @@ use structs::{BuildStatus, EvalInput, EvalStatus, Evaluation, StatusIcon};
 
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
+use flexi_logger::filter::LogLineFilter;
 use scraper::{ElementRef, Html};
 use std::time::Duration;
 
@@ -121,5 +122,31 @@ fn log_format(
         _ => "",
     };
     let level = format!("{level}:").to_lowercase().color(color).bold();
-    write!(w, "{} {}", level, &record.args())
+    let module = record.module_path().unwrap_or_default();
+    write!(
+        w,
+        "{} {}{}",
+        level,
+        (!module.starts_with("hydra_check"))
+            .then_some(format!("[{module}] "))
+            .unwrap_or_default(),
+        &record.args()
+    )
+}
+
+struct LogFilter;
+impl LogLineFilter for LogFilter {
+    fn write(
+        &self,
+        now: &mut flexi_logger::DeferredNow,
+        record: &log::Record,
+        log_line_writer: &dyn flexi_logger::filter::LogLineWriter,
+    ) -> std::io::Result<()> {
+        let module = record.module_path().unwrap_or_default();
+        let blacklist = ["selectors", "html5ever"];
+        if blacklist.iter().any(|x| module.starts_with(x)) && record.level() != log::Level::Trace {
+            return Ok(()); // skip log
+        }
+        log_line_writer.write(now, record)
+    }
 }

@@ -10,7 +10,7 @@ use std::{
     path::Path,
 };
 
-use crate::{constants, log_format, Evaluation, NixpkgsChannelVersion};
+use crate::{constants, log_format, Evaluation, LogFilter, NixpkgsChannelVersion};
 
 const DEFAULT_CHANNEL: &str = "unstable";
 
@@ -342,6 +342,7 @@ impl HydraCheckCli {
         let args = Self::parse();
         let log_handle = Logger::with(args.verbosity.log_level_filter())
             .format(log_format)
+            .filter(Box::new(LogFilter))
             .start()?;
         if let Some(shell) = args.shell {
             // generate shell completions
