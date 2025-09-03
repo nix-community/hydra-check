@@ -1,7 +1,8 @@
 use anyhow::bail;
 use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
-use flexi_logger::Logger;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use flexi_logger::{Logger, LoggerHandle};
 use log::{debug, error, warn};
 use regex::Regex;
 use std::{
@@ -103,13 +104,12 @@ pub struct HydraCheckCli {
     #[arg(short, long, conflicts_with_all = ["PACKAGES", "eval"])]
     releases: bool,
 
-    /// Print more debugging information
-    #[arg(short, long)]
-    verbose: bool,
-
     /// Print generated completions for a given shell
     #[arg(long = "shell-completion", exclusive = true, value_parser = value_parser!(Shell))]
     shell: Option<Shell>,
+
+    #[command(flatten)]
+    verbosity: Verbosity<InfoLevel>,
 }
 
 /// Resolved command line arguments, with all options normalized and unwrapped
@@ -336,10 +336,13 @@ impl HydraCheckCli {
         evals
     }
 
-    /// Parses the command line flags and calls [`Self::guess_all_args()`].
-    /// Also prints shell completions if asked for.
-    pub(crate) fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
+    /// Parses the command line flags, sets the log level, and calls
+    /// [`Self::guess_all_args()`]. Also prints shell completions if asked for.
+    pub(crate) fn parse_and_guess() -> anyhow::Result<(ResolvedArgs, LoggerHandle)> {
         let args = Self::parse();
+        let log_handle = Logger::with(args.verbosity.log_level_filter())
+            .format(log_format)
+            .start()?;
         if let Some(shell) = args.shell {
             // generate shell completions
             let mut cmd = Self::command();
@@ -372,22 +375,18 @@ impl HydraCheckCli {
                     _ => completion_text,
                 }
             );
-            return Ok(ResolvedArgs {
+            let resolved_args = ResolvedArgs {
                 queries: Queries::Noop,
                 ..Default::default()
-            });
+            };
+            return Ok((resolved_args, log_handle));
         }
-        args.guess_all_args()
+        Ok((args.guess_all_args()?, log_handle))
     }
 
-    /// Guesses all relevant command line arguments and sets the log level.
+    /// Guesses all relevant command line arguments.
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
-        let log_level = match args.verbose {
-            false => log::LevelFilter::Info,
-            true => log::LevelFilter::Trace,
-        };
-        Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset()?;
         let queries = match (args.eval, !args.queries.is_empty() || args.tests) {
@@ -411,7 +410,9 @@ impl HydraCheckCli {
 
     /// Runs the program and provides an exit code (with possible errors).
     pub fn execute() -> anyhow::Result<bool> {
-        Self::parse_and_guess()?.fetch_and_print()
+        let (resolved_args, _logger_handle) = Self::parse_and_guess()?;
+        resolved_args.fetch_and_print()
+        // _logger_handle is dropped here
     }
 }
 
