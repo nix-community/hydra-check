@@ -3,7 +3,7 @@
 
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::info;
+use log::{debug, info};
 use std::collections::VecDeque;
 
 use super::builds::BuildReport;
@@ -126,9 +126,14 @@ impl ResolvedArgs {
             let release_stats = if let Some(jobset_report) = jobset_report {
                 // mutable refs that is quick to remove from the front
                 let mut test_builds: VecDeque<&BuildStatus> = stat.builds.iter().collect();
+
+                // this captures `test_builds` mutably but it does _not_ need
+                // to be marked as `mut` because it is moved into .filter_map()
+                // and re-borrowed as mut by them.
                 let filter_eval = |eval: EvalStatus| {
                     let short_rev = eval.short_rev.as_deref().unwrap_or_default();
                     for index in 0..test_builds.len() {
+                        #[allow(clippy::redundant_else)]
                         if test_builds[index]
                             .name
                             .as_deref()
@@ -137,6 +142,8 @@ impl ResolvedArgs {
                         {
                             let test = test_builds.remove(index)?.clone();
                             return Some(ReleaseStatus::new(eval, test, channel));
+                        } else {
+                            debug!("skipping build: {:?}", test_builds[index]);
                         }
                     }
                     None
