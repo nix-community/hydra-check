@@ -4,12 +4,13 @@
 use colored::Colorize;
 use indexmap::IndexMap;
 use log::info;
+use std::collections::VecDeque;
 
 use super::builds::BuildReport;
 use crate::{
     constants,
     queries::jobset::JobsetReport,
-    structs::{BuildStatus, ReleaseStatus},
+    structs::{BuildStatus, EvalStatus, ReleaseStatus},
     FetchHydraReport, ResolvedArgs, StatusIcon,
 };
 
@@ -76,27 +77,31 @@ impl<'a> PackageReport<'a> {
 }
 
 impl ResolvedArgs {
-    // TODO: refactor
     #[allow(clippy::too_many_lines)]
     pub(crate) fn fetch_and_print_packages(&self, packages: &[String]) -> anyhow::Result<bool> {
         let mut status = true;
         let mut all_builds = IndexMap::new();
         let mut all_releases = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
+            // postpone fetching until after the title is printed
             let stat = PackageReport::from_package_with_args(package, self);
             if self.url {
                 println!("{}", stat.get_url());
                 continue;
             }
             let url_dimmed = stat.get_url().dimmed();
-            let channel = self.channel.as_deref().unwrap_or_default();
-            let jobset_report = if self.releases {
-                info!("fetching recent evals on --channel '{channel}' for --releases");
+            let maybe_channel = self.channel.as_deref();
+            let (channel, jobset_report) = if self.releases {
+                let channel = maybe_channel.expect("--channel must be set when --releases is used");
+                info!(
+                    "fetching recent evals on --channel {} for --releases",
+                    channel.bold()
+                );
                 let jobset_report = JobsetReport::from(self).fetch_and_read()?;
                 eprintln!();
-                Some(jobset_report)
+                (channel, Some(jobset_report))
             } else {
-                None
+                (maybe_channel.unwrap_or_default(), None)
             };
             if !self.json {
                 // print title first, then fetch
@@ -119,67 +124,50 @@ impl ResolvedArgs {
                 status = false;
             }
             let release_stats = if let Some(jobset_report) = jobset_report {
+                // mutable refs that is quick to remove from the front
+                let mut test_builds: VecDeque<&BuildStatus> = stat.builds.iter().collect();
+                let filter_eval = |eval: EvalStatus| {
+                    let short_rev = eval.short_rev.as_deref().unwrap_or_default();
+                    for index in 0..test_builds.len() {
+                        if test_builds[index]
+                            .name
+                            .as_deref()
+                            .unwrap_or_default()
+                            .contains(short_rev)
+                        {
+                            let test = test_builds.remove(index)?.clone();
+                            return Some(ReleaseStatus::new(eval, test, channel));
+                        }
+                    }
+                    None
+                };
                 jobset_report
                     .evals
-                    .iter()
-                    .filter_map(|eval| {
-                        let short_rev = eval.short_rev.as_deref().unwrap_or_default();
-                        let mut test_builds = stat.builds.clone();
-                        for index in 0..test_builds.len() {
-                            let test_build = test_builds[index].clone();
-                            if test_build
-                                .name
-                                .as_deref()
-                                .unwrap_or_default()
-                                .contains(short_rev)
-                            {
-                                test_builds.remove(index);
-                                return Some(ReleaseStatus::new(eval.clone(), test_build, channel));
-                            }
-                        }
-                        None
-                    })
-                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .filter_map(filter_eval)
+                    .collect()
             } else {
                 vec![]
             };
             if self.json {
-                let key = if self.releases {
-                    self.channel
-                        .as_deref()
-                        .expect("--channel must be set when --releases is used")
-                } else {
-                    stat.package
-                };
                 if self.releases {
-                    match self.short {
-                        true => all_releases.insert(
-                            key,
-                            match release_stats.first() {
-                                Some(x) => vec![x.to_owned()],
-                                None => vec![],
-                            },
-                        ),
-                        false => all_releases.insert(key, release_stats),
+                    let release_stats = match self.short {
+                        true => release_stats.first().cloned().into_iter().collect(),
+                        false => release_stats,
                     };
+                    all_releases.insert(channel, release_stats);
                 } else {
-                    match self.short {
-                        true => all_builds.insert(
-                            key,
-                            match first_stat {
-                                Some(x) => vec![x.to_owned()],
-                                None => vec![],
-                            },
-                        ),
-                        false => all_builds.insert(key, stat.builds),
+                    let build_stats = match self.short {
+                        true => first_stat.cloned().into_iter().collect(),
+                        false => stat.builds,
                     };
+                    all_builds.insert(stat.package, build_stats);
                 }
                 continue; // print later
             }
-            if self.releases {
-                println!("{}", stat.format_table(self.short, &release_stats));
-            } else {
-                println!("{}", stat.format_table(self.short, &stat.builds));
+            match self.releases {
+                true => println!("{}", stat.format_table(self.short, &release_stats)),
+                false => println!("{}", stat.format_table(self.short, &stat.builds)),
             }
             let url_stripped = stat.get_url().trim_end_matches("/all");
             if !success {
@@ -206,8 +194,7 @@ impl ResolvedArgs {
                 info!("showing inputs for the latest success from a finished eval...");
 
                 let url = format!("{url_stripped}/latest-finished");
-                let build_report = BuildReport::from_url(&url);
-                let build_report = build_report.fetch_and_read()?;
+                let build_report = BuildReport::from_url(&url).fetch_and_read()?;
                 for entry in &build_report.inputs {
                     if self.short {
                         if let (Some(name), Some(rev)) = (&entry.name, &entry.revision) {
