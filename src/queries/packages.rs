@@ -127,6 +127,14 @@ impl ResolvedArgs {
                 // mutable refs that is quick to remove from the front
                 let mut test_builds: VecDeque<&BuildStatus> = stat.builds.iter().collect();
 
+                // if _all_ evals appear to be unfinished, it's likely that the
+                // instance is being rebooted, and we will always link to the
+                // releases as it's more practical
+                let always_link = jobset_report
+                    .evals
+                    .iter()
+                    .all(|eval| !eval.finished.unwrap_or_default());
+
                 // this captures `test_builds` mutably but it does _not_ need
                 // to be marked as `mut` because it is moved into .filter_map()
                 // and re-borrowed as mut by them.
@@ -140,7 +148,7 @@ impl ResolvedArgs {
                             .contains(short_rev)
                         {
                             let test = test_builds.remove(index)?.clone();
-                            return Some(ReleaseStatus::new(eval, test, channel));
+                            return Some(ReleaseStatus::new(eval, test, channel, always_link));
                         }
                     }
                     None

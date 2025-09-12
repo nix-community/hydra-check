@@ -108,10 +108,15 @@ impl ShowHydraStatus for ReleaseStatus {
 }
 
 impl ReleaseStatus {
-    pub(crate) fn new(eval: EvalStatus, test: BuildStatus, channel: &str) -> Self {
+    pub(crate) fn new(
+        eval: EvalStatus,
+        test: BuildStatus,
+        channel: &str,
+        always_link: bool,
+    ) -> Self {
         let release_url = if constants::is_default_host_url()
             && test.success
-            && eval.finished.unwrap_or_default()
+            && (always_link || eval.finished.unwrap_or_default())
             && (
                 channel.starts_with("nixpkgs-") || channel.starts_with("nixos-")
                 // see: https://channels.nixos.org
