@@ -210,12 +210,17 @@ impl JobsetReport<'_> {
 }
 
 impl ResolvedArgs {
+    /// - Returns the latest evaluation ID if available.
+    /// - Forces `--short` output if `force_short_output` is true.
+    ///   This _was_ used with `--eval` to avoid long outputs, but it turns out
+    ///   that detailed jobset information is practically useful, so this
+    ///   toggle is currently unused.
     pub(crate) fn fetch_and_print_jobset(
         &self,
-        force_summary: bool,
+        force_short_output: bool,
     ) -> anyhow::Result<Option<u64>> {
         let stat = JobsetReport::from(self);
-        let (short, json) = match force_summary {
+        let (short, json) = match force_short_output {
             true => (true, false),
             false => (self.short, self.json),
         };

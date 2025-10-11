@@ -21,7 +21,10 @@
           default = self.packages.${system}.hydra-check;
         };
 
-        devShells.default = self.packages.${system}.hydra-check.overrideAttrs ({ nativeBuildInputs, ... }: {
+        devShells.default = (self.packages.${system}.hydra-check.override {
+          # prevent dependence on the source ./.; see ./package.nix
+          source = null;
+        }).overrideAttrs ({ nativeBuildInputs ? [], env ? {}, ... }: {
           nativeBuildInputs = with pkgs.buildPackages; [
             git
             cargo # with shell completions, instead of cargo-auditable
@@ -30,10 +33,7 @@
             nixfmt-rfc-style # for formatting nix code
           ] ++ nativeBuildInputs;
 
-          # use cached crates in "$HOME/.cargo"
-          cargoDeps = pkgs.emptyDirectory;
-
-          env = with pkgs.buildPackages; {
+          env = with pkgs.buildPackages; env // {
             # for developments, e.g. symbol lookup in std library
             RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
             # for debugging

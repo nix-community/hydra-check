@@ -2,11 +2,13 @@
   lib,
   hydra-check,
   rustPlatform,
+  emptyDirectory,
   source ? builtins.path {
     # `builtins.path` works well with lazy trees
     name = "hydra-check-source";
     path = ./.;
   },
+  isDevShell ? source == null,
 }:
 
 let
@@ -25,33 +27,41 @@ let
 in
 
 hydra-check.overrideAttrs (
+  finalAttrs:
   {
     version,
     meta ? { },
     ...
-  }:
-  {
-    version =
-      assert lib.assertMsg (lib.versionAtLeast newVersion version) ''
-        hydra-check provided here (${newVersion}) failed to be newer
-        than the one provided in nixpkgs (${version}).
-      '';
-      newVersion;
+  }@_prevAttrs:
+  if isDevShell then
+    {
+      # prevent devShell dependence on the source
+      src = emptyDirectory;
+      cargoDeps = emptyDirectory;
+    }
+  else
+    {
+      version =
+        assert lib.assertMsg (lib.versionAtLeast newVersion version) ''
+          hydra-check provided here (${newVersion}) failed to be newer
+          than the one provided in nixpkgs (${version}).
+        '';
+        newVersion;
 
-    src = source;
+      src = source;
 
-    cargoDeps = rustPlatform.importCargoLock {
-      lockFile = "${source}/Cargo.lock";
-    };
+      cargoDeps = rustPlatform.importCargoLock {
+        lockFile = "${source}/Cargo.lock";
+      };
 
-    meta = meta // {
-      maintainers = with lib.maintainers; [
-        makefu
-        artturin
-        bryango
-      ];
-      # to correctly generate meta.position for backtrace:
-      inherit (meta) description;
-    };
-  }
+      meta = meta // {
+        maintainers = with lib.maintainers; [
+          makefu
+          artturin
+          bryango
+        ];
+        # to correctly generate meta.position for backtrace:
+        inherit (meta) description;
+      };
+    }
 )
