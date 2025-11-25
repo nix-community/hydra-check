@@ -11,8 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-13 for x86_64-darwin
-        os: [ubuntu-latest, macos-13, macos-latest]
+        os: [ubuntu-latest, macos-15-intel, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v5
@@ -29,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-13, macos-latest]
+        os: [ubuntu-latest, macos-15-intel, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v5
