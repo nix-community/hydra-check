@@ -56,6 +56,7 @@ impl NixpkgsChannelVersion {
 #[test]
 #[ignore = "require internet connection"]
 fn fetch_stable() {
+    let _logger_handle = crate::set_up_logger("debug").unwrap();
     let ver = NixpkgsChannelVersion::stable().unwrap();
     println!("latest stable version: {ver}");
     debug_assert!(regex::Regex::new(r"^[0-9]+\.[0-9]+").unwrap().is_match(ver));
