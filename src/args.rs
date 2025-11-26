@@ -2,7 +2,7 @@ use anyhow::bail;
 use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use flexi_logger::{Logger, LoggerHandle};
+use flexi_logger::LoggerHandle;
 use log::{debug, error, warn};
 use regex::Regex;
 use std::{
@@ -10,7 +10,7 @@ use std::{
     path::Path,
 };
 
-use crate::{constants, log_format, Evaluation, LogFilter, NixpkgsChannelVersion};
+use crate::{constants, set_up_logger, Evaluation, NixpkgsChannelVersion};
 
 const DEFAULT_CHANNEL: &str = "unstable";
 
@@ -340,10 +340,7 @@ impl HydraCheckCli {
     /// [`Self::guess_all_args()`]. Also prints shell completions if asked for.
     pub(crate) fn parse_and_guess() -> anyhow::Result<(ResolvedArgs, LoggerHandle)> {
         let args = Self::parse();
-        let log_handle = Logger::with(args.verbosity.log_level_filter())
-            .format(log_format)
-            .filter(Box::new(LogFilter))
-            .start()?;
+        let logger_handle = set_up_logger(args.verbosity.log_level_filter())?;
         if let Some(shell) = args.shell {
             // generate shell completions
             let mut cmd = Self::command();
@@ -380,9 +377,9 @@ impl HydraCheckCli {
                 queries: Queries::Noop,
                 ..Default::default()
             };
-            return Ok((resolved_args, log_handle));
+            return Ok((resolved_args, logger_handle));
         }
-        Ok((args.guess_all_args()?, log_handle))
+        Ok((args.guess_all_args()?, logger_handle))
     }
 
     /// Guesses all relevant command line arguments.
@@ -413,7 +410,7 @@ impl HydraCheckCli {
     pub fn execute() -> anyhow::Result<bool> {
         let (resolved_args, _logger_handle) = Self::parse_and_guess()?;
         resolved_args.fetch_and_print()
-        // _logger_handle is dropped here
+        // _logger_handle is dropped here, but the logger may live on in LOGGER_HANDLE
     }
 }
 
@@ -473,6 +470,7 @@ fn guess_darwin() -> anyhow::Result<()> {
 #[test]
 #[ignore = "require internet connection"]
 fn guess_stable() -> anyhow::Result<()> {
+    let _logger_handle = crate::set_up_logger("debug").unwrap();
     let args: HydraCheckCli =
         HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset()?;
     eprintln!("{:?}", args.jobset);

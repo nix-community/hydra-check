@@ -28,7 +28,8 @@ use structs::{BuildStatus, EvalInput, EvalStatus, Evaluation, StatusIcon};
 
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
-use flexi_logger::filter::LogLineFilter;
+use flexi_logger::{filter::LogLineFilter, LoggerHandle};
+use once_cell::sync::OnceCell as OnceLock;
 use scraper::{ElementRef, Html};
 use std::time::Duration;
 
@@ -108,6 +109,26 @@ fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
     let link = row.find("td")?.find("a")?.try_attr("href")?;
     let skipable = link.ends_with("/all") || link.contains("full=1");
     Ok(skipable)
+}
+
+static LOGGER_HANDLE: OnceLock<LoggerHandle> = OnceLock::new();
+
+/// Sets up the global [`flexi_logger`] with the given log specification.
+/// If a logger has already been set up, it updates the log specification
+/// to be the new one with [`LoggerHandle::push_temp_spec`].
+fn set_up_logger<T>(logspec: T) -> anyhow::Result<LoggerHandle>
+where
+    T: TryInto<flexi_logger::LogSpecification>,
+    T::Error: Sync + Send + std::error::Error + 'static, // required by anyhow
+{
+    let logspec = logspec.try_into()?;
+    let logger_handle = LOGGER_HANDLE.get_or_try_init(|| {
+        flexi_logger::Logger::with(logspec.clone())
+            .format(log_format)
+            .filter(Box::new(LogFilter))
+            .start()
+    })?;
+    Ok(logger_handle.clone())
 }
 
 fn log_format(
