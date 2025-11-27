@@ -190,7 +190,7 @@ impl HydraCheckCli {
                         std::process::exit(1);
                     }
                 };
-                channel_stable(&version)
+                channel_stable(version)
             }
             x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => channel_stable(x),
             x => x.into(),
