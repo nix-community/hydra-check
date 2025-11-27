@@ -242,6 +242,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap-verbosity-flag"
+version = "3.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d92b1fab272fe943881b77cc6e920d6543e5b1bfadbd5ed81c7c5a755742394"
+dependencies = [
+ "clap",
+ "log",
+]
+
+[[package]]
 name = "clap_builder"
 version = "4.5.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -783,6 +793,7 @@ version = "2.0.4"
 dependencies = [
  "anyhow",
  "clap",
+ "clap-verbosity-flag",
  "clap_complete",
  "colored",
  "comfy-table",
@@ -790,6 +801,7 @@ dependencies = [
  "indexmap",
  "insta",
  "log",
+ "once_cell",
  "regex",
  "reqwest",
  "scraper",
@@ -797,6 +809,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "temp-env",
+ "yansi",
 ]
 
 [[package]]
@@ -1155,9 +1168,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "openssl"
@@ -2493,6 +2506,12 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "yansi"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "zerocopy"

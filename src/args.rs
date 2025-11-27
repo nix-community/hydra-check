@@ -1,6 +1,8 @@
-use clap::{arg, command, value_parser, CommandFactory, Parser};
+use anyhow::bail;
+use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
-use flexi_logger::Logger;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use flexi_logger::LoggerHandle;
 use log::{debug, error, warn};
 use regex::Regex;
 use std::{
@@ -8,15 +10,19 @@ use std::{
     path::Path,
 };
 
-use crate::{constants, log_format, Evaluation, NixpkgsChannelVersion};
+use crate::{constants, set_up_logger, Evaluation, NixpkgsChannelVersion};
 
 const DEFAULT_CHANNEL: &str = "unstable";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(crate) enum Queries {
     Jobset,
     Packages(Vec<String>),
     Evals(Vec<Evaluation>),
+
+    /// No-op, e.g. when only printing shell completions
+    #[default]
+    Noop,
 }
 
 #[derive(Parser, Debug, Default)]
@@ -62,6 +68,14 @@ pub struct HydraCheckCli {
     #[arg(short, long)]
     short: bool,
 
+    /// Fetch more entries if possible (might be slower)
+    #[arg(
+        short,
+        long,
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
+    more: bool,
+
     /// System architecture to check
     #[arg(short, long)]
     arch: Option<String>,
@@ -78,23 +92,38 @@ pub struct HydraCheckCli {
     #[arg(short, long)]
     eval: bool,
 
-    /// Print more debugging information
-    #[arg(short, long)]
-    verbose: bool,
+    /// Query the release tests of the given channel (jobset)
+    #[arg(
+        short, long, conflicts_with_all = ["PACKAGES", "eval"],
+        // --releases implies --tests
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
+    tests: bool,
+
+    /// Combine information from channel evals and release --tests
+    #[arg(short, long, conflicts_with_all = ["PACKAGES", "eval"])]
+    releases: bool,
 
     /// Print generated completions for a given shell
     #[arg(long = "shell-completion", exclusive = true, value_parser = value_parser!(Shell))]
     shell: Option<Shell>,
+
+    #[command(flatten)]
+    verbosity: Verbosity<InfoLevel>,
 }
 
 /// Resolved command line arguments, with all options normalized and unwrapped
-#[derive(Debug)]
+#[derive(Debug, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub(crate) struct ResolvedArgs {
     /// List of packages or evals to query
     pub(crate) queries: Queries,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
+    pub(crate) more: bool,
+    pub(crate) releases: bool,
+    pub(crate) channel: Option<String>,
     pub(crate) jobset: String,
 }
 
@@ -138,14 +167,13 @@ impl HydraCheckCli {
     /// Note that this method is inherently non-deterministic as it depends on
     /// the current build target & runtime systems.
     /// See the source code for the detailed heuristics.
-    #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn guess_jobset(self) -> Self {
+    pub fn guess_jobset(self) -> anyhow::Result<Self> {
         if self.jobset.is_some() {
-            return Self {
+            return Ok(Self {
                 channel: None,
                 ..self
-            };
+            });
         }
         let channel = self.channel.unwrap_or(DEFAULT_CHANNEL.into());
         // https://wiki.nixos.org/wiki/Channel_branches
@@ -176,15 +204,14 @@ impl HydraCheckCli {
                     Ok(version) => version,
                     Err(err) => {
                         error!(
-                            "{}, {}.\n\n{}",
+                            "{}, {}.",
                             "could not fetch the stable release version number",
                             "please specify '--channel' or '--jobset' explicitly",
-                            err
                         );
-                        std::process::exit(1);
+                        return Err(err);
                     }
                 };
-                channel_stable(&version)
+                channel_stable(version)
             }
             x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => channel_stable(x),
             x => x.into(),
@@ -194,7 +221,11 @@ impl HydraCheckCli {
             "nixpkgs-unstable" => "nixpkgs/trunk".into(),
             "nixos-unstable" => "nixos/trunk-combined".into(),
             "nixos-unstable-small" => "nixos/unstable-small".into(),
-            x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
+            // https://hydra.nixos.org/project/nixos
+            x if x.starts_with("staging") && x.ends_with("-small") => format!("nixos/{x}"),
+            // `nixos/staging` is abandoned while `nixpkgs/staging` is active
+            // https://hydra.nixos.org/project/nixpkgs
+            x if x.starts_with("staging") => format!("nixpkgs/{x}"),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixos", "nixos/release", 1)
             }
@@ -204,11 +235,11 @@ impl HydraCheckCli {
             x => x.into(),
         };
         debug!("--channel '{channel}' implies --jobset '{jobset}'");
-        Self {
+        Ok(Self {
             jobset: Some(jobset),
             channel: Some(channel),
             ..self
-        }
+        })
     }
 
     /// Guesses the full package name spec (e.g. `nixpkgs.gimp.x86_64-linux`)
@@ -252,8 +283,31 @@ impl HydraCheckCli {
         format!("{package}{arch_suffix}")
     }
 
-    fn guess_packages(&self) -> Vec<String> {
-        self.queries
+    fn guess_packages(&self) -> anyhow::Result<Vec<String>> {
+        if self.tests {
+            let Some(ref jobset) = self.jobset else {
+                bail!("--jobset is not properly set up or deduced");
+            };
+            // aggregate job for channel release tests; see the `job` keys in:
+            // - https://github.com/NixOS/infra/blob/main/channels.nix, and
+            // - https://status.nixos.org/
+            //
+            let aggregate_job = match jobset.as_str() {
+                x if x.ends_with("darwin") => "darwin-tested",
+                x if x.starts_with("nixpkgs/") => "unstable",
+                x if x.starts_with("nixos/") => "tested",
+                _ => {
+                    let default = "tested";
+                    warn!(
+                        "unknown --jobset '{jobset}', assuming job '{default}' for release tests"
+                    );
+                    default
+                }
+            };
+            return Ok(vec![aggregate_job.into()]);
+        }
+        let packages = self
+            .queries
             .iter()
             .filter_map(|package| {
                 if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
@@ -266,21 +320,27 @@ impl HydraCheckCli {
                     Some(self.guess_package_name(package))
                 }
             })
-            .collect()
+            .collect();
+        Ok(packages)
     }
 
     fn guess_evals(&self) -> Vec<Evaluation> {
+        if self.queries.is_empty() {
+            // this would resolve to the latest eval of a jobset:
+            return vec![Evaluation::guess_from_spec("", self.more)];
+        }
         let mut evals = Vec::new();
         for spec in &self.queries {
-            evals.push(Evaluation::guess_from_spec(spec));
+            evals.push(Evaluation::guess_from_spec(spec, self.more));
         }
         evals
     }
 
-    /// Parses the command line flags and calls [`Self::guess_all_args()`].
-    /// Also prints shell completions if asked for.
-    pub(crate) fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
+    /// Parses the command line flags, sets the log level, and calls
+    /// [`Self::guess_all_args()`]. Also prints shell completions if asked for.
+    pub(crate) fn parse_and_guess() -> anyhow::Result<(ResolvedArgs, LoggerHandle)> {
         let args = Self::parse();
+        let logger_handle = set_up_logger(args.verbosity.log_level_filter())?;
         if let Some(shell) = args.shell {
             // generate shell completions
             let mut cmd = Self::command();
@@ -313,33 +373,33 @@ impl HydraCheckCli {
                     _ => completion_text,
                 }
             );
-            std::process::exit(0);
+            let resolved_args = ResolvedArgs {
+                queries: Queries::Noop,
+                ..Default::default()
+            };
+            return Ok((resolved_args, logger_handle));
         }
-        args.guess_all_args()
+        Ok((args.guess_all_args()?, logger_handle))
     }
 
-    /// Guesses all relevant command line arguments and sets the log level.
+    /// Guesses all relevant command line arguments.
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
-        let log_level = match args.verbose {
-            false => log::LevelFilter::Info,
-            true => log::LevelFilter::Trace,
-        };
-        Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
-        let args = args.guess_jobset();
-        let queries = match (args.queries.is_empty(), args.eval) {
-            (true, false) => Queries::Jobset,
-            // this would resolve to the latest eval of a jobset:
-            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("")]),
-            (false, true) => Queries::Evals(args.guess_evals()),
-            (false, false) => Queries::Packages(args.guess_packages()),
+        let args = args.guess_jobset()?;
+        let queries = match (args.eval, !args.queries.is_empty() || args.tests) {
+            (true, _) => Queries::Evals(args.guess_evals()),
+            (_, true) => Queries::Packages(args.guess_packages()?),
+            (_, false) => Queries::Jobset,
         };
         Ok(ResolvedArgs {
             queries,
             url: args.url,
             json: args.json,
             short: args.short,
+            more: args.more,
+            releases: args.releases,
+            channel: args.channel,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
@@ -348,7 +408,9 @@ impl HydraCheckCli {
 
     /// Runs the program and provides an exit code (with possible errors).
     pub fn execute() -> anyhow::Result<bool> {
-        Self::parse_and_guess()?.fetch_and_print()
+        let (resolved_args, _logger_handle) = Self::parse_and_guess()?;
+        resolved_args.fetch_and_print()
+        // _logger_handle is dropped here, but the logger may live on in LOGGER_HANDLE
     }
 }
 
@@ -363,40 +425,67 @@ impl ResolvedArgs {
             }
             Queries::Packages(packages) => self.fetch_and_print_packages(packages),
             Queries::Evals(evals) => self.fetch_and_print_evaluations(evals),
+            Queries::Noop => Ok(true),
         }
     }
 }
 
 #[test]
-fn guess_jobset() {
+fn guess_jobset() -> anyhow::Result<()> {
     let aliases = [
         ("24.05", "nixos/release-24.05"),
         ("nixos-23.05", "nixos/release-23.05"),
         ("nixos-23.11-small", "nixos/release-23.11-small"),
+        ("nixpkgs-25.05-darwin", "nixpkgs/nixpkgs-25.05-darwin"),
+        ("staging", "nixpkgs/staging"),
+        ("staging-next", "nixpkgs/staging-next"),
+        ("staging-next-small", "nixos/staging-next-small"),
+        ("staging-next-24.11", "nixpkgs/staging-next-24.11"),
+        ("staging-next-24.11-small", "nixos/staging-next-24.11-small"),
     ];
     for (channel, jobset) in aliases {
         eprintln!("{channel} => {jobset}");
-        let args = HydraCheckCli::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
+        let args =
+            HydraCheckCli::parse_from(["hydra-check", "--channel", channel]).guess_jobset()?;
         debug_assert_eq!(args.jobset, Some(jobset.into()));
     }
+    Ok(())
 }
 
 #[test]
-fn guess_darwin() {
+fn guess_darwin() -> anyhow::Result<()> {
     let apple_silicon = "aarch64-darwin";
     if Vec::from(constants::NIXOS_ARCHITECTURES).contains(&apple_silicon) {
         // if one day NixOS gains support for the darwin kernel
         // (however unlikely), abort this test
-        return;
+        return Ok(());
     }
-    let args = HydraCheckCli::parse_from(["hydra-check", "--arch", apple_silicon]).guess_jobset();
+    let args =
+        HydraCheckCli::parse_from(["hydra-check", "--arch", apple_silicon]).guess_jobset()?;
     // always follow nixpkgs-unstable
     debug_assert_eq!(args.jobset, Some("nixpkgs/trunk".into()));
+    Ok(())
 }
 
 #[test]
 #[ignore = "require internet connection"]
-fn guess_stable() {
-    let args = HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
+fn guess_stable() -> anyhow::Result<()> {
+    let _logger_handle = crate::set_up_logger("debug").unwrap();
+    let args: HydraCheckCli =
+        HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset()?;
     eprintln!("{:?}", args.jobset);
+    assert!(args.jobset.is_some_and(|x| x.starts_with("nixos/release-")));
+    let args: HydraCheckCli = HydraCheckCli::parse_from([
+        "hydra-check",
+        "--channel",
+        "stable",
+        "--arch",
+        "aarch64-darwin", // apple silicon
+    ])
+    .guess_jobset()?;
+    eprintln!("{:?}", args.jobset);
+    assert!(args
+        .jobset
+        .is_some_and(|x| x.starts_with("nixpkgs/nixpkgs-") && x.ends_with("darwin")));
+    Ok(())
 }
