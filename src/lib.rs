@@ -40,7 +40,7 @@ trait ShowHydraStatus {
 
 /// Trait for all kinds of Hydra `Report`.
 /// This usually corresponds to a summary page from Hydra's web interface,
-/// such as <https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux>.
+/// such as <https://hydra.nixos.org/job/nixpkgs/unstable/hello.x86_64-linux>.
 trait FetchHydraReport: Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {

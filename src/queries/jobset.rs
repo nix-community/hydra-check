@@ -1,5 +1,5 @@
 //! A module that formats the details of the specified (or inferred) jobset,
-//! from an url like: <https://hydra.nixos.org/jobset/nixpkgs/trunk/evals>.
+//! from an url like: <https://hydra.nixos.org/jobset/nixpkgs/unstable/evals>.
 
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
@@ -108,7 +108,7 @@ impl FetchHydraReport for JobsetReport<'_> {
 impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
     fn from(args: &'a ResolvedArgs) -> Self {
         //
-        // https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
+        // https://hydra.nixos.org/jobset/nixpkgs/unstable/evals
         //
         let url = format!("{}/jobset/{}/evals", &*HYDRA_CHECK_HOST_URL, args.jobset);
         Self {
