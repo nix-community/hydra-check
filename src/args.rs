@@ -31,8 +31,8 @@ pub(crate) enum Queries {
 /// Check hydra.nixos.org for build status of packages
 ///
 /// Other channels can be:
-///   - unstable      - alias for nixos/trunk-combined (for NixOS) or nixpkgs/trunk
-///   - master        - alias for nixpkgs/trunk (Default for other architectures)
+///   - unstable      - alias for nixos/unstable (for NixOS) or nixpkgs/unstable
+///   - master        - alias for nixpkgs/unstable (Default for other architectures)
 ///   - staging-next  - alias for nixpkgs/staging-next
 ///   - 24.05         - alias for nixos/release-24.05
 ///
@@ -191,8 +191,8 @@ impl HydraCheckCli {
         };
         debug!("--channel resolves to '{channel}'");
         let jobset: String = match channel.as_str() {
-            "nixpkgs-unstable" => "nixpkgs/trunk".into(),
-            "nixos-unstable" => "nixos/trunk-combined".into(),
+            "nixpkgs-unstable" => "nixpkgs/unstable".into(),
+            "nixos-unstable" => "nixos/unstable".into(),
             "nixos-unstable-small" => "nixos/unstable-small".into(),
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
@@ -234,7 +234,7 @@ impl HydraCheckCli {
             _ if has_known_arch_suffix => "".into(),
             None => warn_unknown_arch(),
             // empty --arch is useful for aggregate job such as the channel tests
-            // e.g. https://hydra.nixos.org/job/nixpkgs/trunk/unstable
+            // e.g. https://hydra.nixos.org/job/nixpkgs/unstable/unstable
             Some(arch) if arch.is_empty() => "".into(),
             Some(arch) => format!(".{arch}"),
         };
@@ -391,7 +391,7 @@ fn guess_darwin() {
     }
     let args = HydraCheckCli::parse_from(["hydra-check", "--arch", apple_silicon]).guess_jobset();
     // always follow nixpkgs-unstable
-    debug_assert_eq!(args.jobset, Some("nixpkgs/trunk".into()));
+    debug_assert_eq!(args.jobset, Some("nixpkgs/unstable".into()));
 }
 
 #[test]

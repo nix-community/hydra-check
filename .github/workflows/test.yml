@@ -45,4 +45,4 @@ jobs:
     - run: nix flake check
     - run: nix develop -c cargo clippy
     - run: nix develop -c cargo fmt --check --all
-    - run: nix develop -c cargo test --all-features -- --color=always --ignored # run only ignored tests
+    - run: nix develop -c cargo test --all-features -- --color=always --no-capture --ignored # run only ignored tests

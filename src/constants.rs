@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 
 /// Currently supported systems (`supportedSystems`) on [hydra.nixos.org](https://hydra.nixos.org).
 ///
-/// This is invoked in the jobset: [nixpkgs/trunk](https://hydra.nixos.org/jobset/nixpkgs/trunk#tabs-configuration),
+/// This is invoked in the jobset: [nixpkgs/unstable](https://hydra.nixos.org/jobset/nixpkgs/unstable#tabs-configuration),
 /// and defined by the following expressions in nixpkgs:
 /// - [pkgs/top-level/release.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/release.nix)
 /// - [ci/supportedSystems.nix](https://github.com/NixOS/nixpkgs/blob/master/ci/supportedSystems.nix).
@@ -30,7 +30,7 @@ pub const KNOWN_ARCHITECTURES: [&str; 4] = [
 
 /// Currently supported systems (`supportedSystems`) for NixOS.
 ///
-/// This is invoked in the jobset: [nixos/trunk-combined](https://hydra.nixos.org/jobset/nixos/trunk-combined#tabs-configuration),
+/// This is invoked in the jobset: [nixos/unstable](https://hydra.nixos.org/jobset/nixos/unstable#tabs-configuration),
 /// and defined by the expression: [nixpkgs: nixos/release-combined.nix](https://github.com/NixOS/nixpkgs/blob/master/nixos/release-combined.nix).
 ///
 /// This may change in the future.

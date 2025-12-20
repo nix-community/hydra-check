@@ -1,5 +1,5 @@
 //! A module that formats the details of the specified (or inferred) packages,
-//! e.g. from <https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux>.
+//! e.g. from <https://hydra.nixos.org/job/nixpkgs/unstable/hello.x86_64-linux>.
 
 use colored::Colorize;
 use indexmap::IndexMap;
@@ -45,7 +45,7 @@ impl<'a> PackageReport<'a> {
         // Examples:
         // - https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
         // - https://hydra.nixos.org/job/nixos/release-19.09/nixos.tests.installer.simpleUefiGrub.aarch64-linux
-        // - https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux/all
+        // - https://hydra.nixos.org/job/nixpkgs/unstable/hello.x86_64-linux/all
         //
         // There is also {url}/all which is a lot slower.
         //

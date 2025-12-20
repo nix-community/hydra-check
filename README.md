@@ -17,7 +17,7 @@ usage: hydra-check [options] PACKAGES...
 ...
 
 $ hydra-check
-Evaluations of jobset nixpkgs/trunk @ https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
+Evaluations of jobset nixpkgs/unstable @ https://hydra.nixos.org/jobset/nixpkgs/unstable/evals
 ⧖ nixpkgs → df76cd6  5h ago      ✔ 194306  ✖ 3554   ⧖ 55364  Δ ?       https://hydra.nixos.org/eval/1809865
 ⧖ nixpkgs → 7701a9e  14h ago     ✔ 196874  ✖ 5123   ⧖ 51253  Δ ?       https://hydra.nixos.org/eval/1809859
 ⧖ nixpkgs → 7150b43  23h ago     ✔ 200232  ✖ 48388  ⧖ 4629   Δ ?       https://hydra.nixos.org/eval/1809854
@@ -28,11 +28,11 @@ Evaluations of jobset nixpkgs/trunk @ https://hydra.nixos.org/jobset/nixpkgs/tru
 ...
 
 $ hydra-check hello
-Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/trunk-combined
+Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/unstable
 ✔ hello-2.10 from 2020-03-14 - https://hydra.nixos.org/build/114752982
 
 $ hydra-check hello --arch x86_64-darwin
-Build Status for hello.x86_64-darwin on jobset nixpkgs/trunk
+Build Status for hello.x86_64-darwin on jobset nixpkgs/unstable
 ✔ hello-2.12.1 from 2023-09-28 - https://hydra.nixos.org/build/236635446
 
 $ hydra-check hello python --channel 19.03
@@ -157,7 +157,7 @@ Queued Jobs:
 - `--arch` defaults to the target architecture (instead of `x86_64-linux` all the time)
 - `--jobset` explicitly conflicts with `--channel` to avoid confusion, as channels are just aliases for jobsets
 - The `staging` channel / alias is removed as `nixos/staging` is no longer active; instead we add `staging-next` as an alias for `nixpkgs/staging-next`
-- The default `unstable` channel points to `nixpkgs/trunk` on non-NixOS systems
+- The default `unstable` channel points to `nixpkgs/unstable` on non-NixOS systems
 
 # Features
 - Print recent evaluations of the jobset if no package is specified
