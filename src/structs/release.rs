@@ -9,12 +9,14 @@ use crate::{constants, BuildStatus, EvalStatus, ShowHydraStatus, StatusIcon};
 
 /// Container for the evaluation and test build status of a (potential)
 /// channel release.
+#[non_exhaustive]
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 pub(crate) struct ReleaseStatus {
     pub(crate) eval: EvalStatus,
     pub(crate) test: BuildStatus,
     pub(crate) release_url: Option<String>,
+    pub(crate) report_url: Option<String>,
 }
 
 impl ShowHydraStatus for ReleaseStatus {
@@ -62,6 +64,7 @@ impl ShowHydraStatus for ReleaseStatus {
                 )
                 .into()
             });
+            let failed = format_with_optional_hyperlink(failed, self.report_url.as_ref()).into();
             let queued = match eval.queued.unwrap_or_default() {
                 x if x != 0 => queued.bold(),
                 _ => queued.normal(),
@@ -112,6 +115,7 @@ impl ReleaseStatus {
         eval: EvalStatus,
         test: BuildStatus,
         channel: &str,
+        jobset: &str,
         always_link: bool,
     ) -> Self {
         let release_url = if constants::is_default_host_url()
@@ -133,10 +137,25 @@ impl ReleaseStatus {
         } else {
             None
         };
+        let report_url = if constants::is_default_host_url()
+            && (
+                jobset.starts_with("nixpkgs/") || jobset.starts_with("nixos/")
+                // see: https://channels.nixos.org
+            ) {
+            Some(format!(
+                "https://malob.github.io/nix-review-tools-reports/{}/{}_{}.html",
+                jobset.replacen('/', ":", 1),
+                jobset.replacen('/', "_", 1),
+                eval.id.unwrap_or_default()
+            ))
+        } else {
+            None
+        };
         Self {
             eval,
             test,
             release_url,
+            report_url,
         }
     }
 }
