@@ -9,6 +9,7 @@ use crate::{constants, BuildStatus, EvalStatus, ShowHydraStatus, StatusIcon};
 
 /// Container for the evaluation and test build status of a (potential)
 /// channel release.
+#[non_exhaustive]
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 pub(crate) struct ReleaseStatus {
@@ -112,6 +113,7 @@ impl ReleaseStatus {
         eval: EvalStatus,
         test: BuildStatus,
         channel: &str,
+        jobset: &str,
         always_link: bool,
     ) -> Self {
         let release_url = if constants::is_default_host_url()

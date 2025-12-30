@@ -3,7 +3,7 @@
 
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::info;
+use log::{info, warn};
 use std::collections::VecDeque;
 
 use super::builds::BuildReport;
@@ -90,18 +90,14 @@ impl ResolvedArgs {
                 continue;
             }
             let url_dimmed = stat.get_url().dimmed();
-            let maybe_channel = self.channel.as_deref();
-            let (channel, jobset_report) = if self.releases {
-                let channel = maybe_channel.expect("--channel must be set when --releases is used");
-                info!(
-                    "fetching recent evals on --channel {} for --releases",
-                    channel.bold()
-                );
+            let jobset = self.jobset.as_str();
+            let jobset_report = if self.releases {
+                info!("fetching recent evals on --jobset {jobset} for --releases");
                 let jobset_report = JobsetReport::from(self).fetch_and_read()?;
                 eprintln!();
-                (channel, Some(jobset_report))
+                Some(jobset_report)
             } else {
-                (maybe_channel.unwrap_or_default(), None)
+                None
             };
             if !self.json {
                 // print title first, then fetch
@@ -111,7 +107,7 @@ impl ResolvedArgs {
                 println!(
                     "Build Status for {} on jobset {}",
                     stat.package.bold(),
-                    self.jobset.bold(),
+                    jobset.bold(),
                 );
                 if !self.short {
                     println!("{url_dimmed}");
@@ -134,6 +130,10 @@ impl ResolvedArgs {
                     .evals
                     .iter()
                     .all(|eval| !eval.finished.unwrap_or_default());
+                let channel = self.channel.as_deref().unwrap_or_else(|| {
+                    warn!("--channel is not set, so we could not link to releases.nixos.org");
+                    "" // set to empty string for ease of use below
+                });
 
                 // this captures `test_builds` mutably but it does _not_ need
                 // to be marked as `mut` because it is moved into .filter_map()
@@ -148,7 +148,13 @@ impl ResolvedArgs {
                             .contains(short_rev)
                         {
                             let test = test_builds.remove(index)?.clone();
-                            return Some(ReleaseStatus::new(eval, test, channel, always_link));
+                            return Some(ReleaseStatus::new(
+                                eval,
+                                test,
+                                channel,
+                                jobset,
+                                always_link,
+                            ));
                         }
                     }
                     None
@@ -167,7 +173,7 @@ impl ResolvedArgs {
                         true => release_stats.first().cloned().into_iter().collect(),
                         false => release_stats,
                     };
-                    all_releases.insert(channel, release_stats);
+                    all_releases.insert(jobset, release_stats);
                 } else {
                     let build_stats = match self.short {
                         true => first_stat.cloned().into_iter().collect(),
