@@ -17,6 +17,8 @@ pub(crate) struct ReleaseStatus {
     pub(crate) test: BuildStatus,
     pub(crate) release_url: Option<String>,
     pub(crate) report_url: Option<String>,
+    pub(crate) git_revision: Option<String>,
+    pub(crate) git_revision_url: Option<String>,
 }
 
 impl ShowHydraStatus for ReleaseStatus {
@@ -56,14 +58,15 @@ impl ShowHydraStatus for ReleaseStatus {
                 (StatusIcon::Failed, eval.failed),
                 (StatusIcon::Queued, eval.queued),
             ];
-            let [suceeded, failed, queued] = statistics.map(|(icon, text)| -> ColoredString {
+            let [succeeded, failed, queued] = statistics.map(|(icon, text)| {
                 format!(
                     "{} {}",
                     ColoredString::from(&icon),
                     text.unwrap_or_default()
                 )
-                .into()
             });
+            let succeeded =
+                format_with_optional_hyperlink(succeeded, self.git_revision_url.as_ref()).into();
             let failed = format_with_optional_hyperlink(failed, self.report_url.as_ref()).into();
             let queued = match eval.queued.unwrap_or_default() {
                 x if x != 0 => queued.bold(),
@@ -78,7 +81,7 @@ impl ShowHydraStatus for ReleaseStatus {
                 }
             )
             .into();
-            &[timestamp, suceeded, failed, queued, delta]
+            &[timestamp, succeeded, failed, queued, delta]
         } else {
             &Default::default()
         };
@@ -118,36 +121,52 @@ impl ReleaseStatus {
         jobset: &str,
         always_link: bool,
     ) -> Self {
-        let release_url = if constants::is_default_host_url()
-            && test.success
-            && (always_link || eval.finished.unwrap_or_default())
+        let (release_url, git_revision, git_revision_url) = if constants::is_default_host_url()
             && (
                 channel.starts_with("nixpkgs-") || channel.starts_with("nixos-")
                 // see: https://channels.nixos.org
             ) {
-            Some(format!(
-                "https://releases.nixos.org/{}/{}",
-                if channel == "nixpkgs-unstable" {
-                    "nixpkgs".into()
-                } else {
-                    channel.replacen('-', "/", 1)
-                },
-                test.name.as_deref().unwrap_or_default()
-            ))
+            if let Some(test_name) = test.name.as_deref() {
+                let release_url =
+                    if always_link || (eval.finished.unwrap_or_default() && test.success) {
+                        Some(format!(
+                            "https://releases.nixos.org/{}/{test_name}",
+                            if channel == "nixpkgs-unstable" {
+                                "nixpkgs".into()
+                            } else {
+                                channel.replacen('-', "/", 1)
+                            }
+                        ))
+                    } else {
+                        None
+                    };
+
+                let git_revision = test_name.rsplit_once('.').map(|(_, rev)| rev.to_string());
+
+                let git_revision_url = git_revision
+                    .as_deref()
+                    .map(|rev| format!("https://github.com/NixOS/nixpkgs/commits/{rev}"));
+
+                (release_url, git_revision, git_revision_url)
+            } else {
+                Default::default() // None: no urls if no test.name
+            }
         } else {
-            None
+            Default::default() // None: no urls
         };
         let report_url = if constants::is_default_host_url()
             && (
                 jobset.starts_with("nixpkgs/") || jobset.starts_with("nixos/")
                 // see: https://channels.nixos.org
             ) {
-            Some(format!(
-                "https://malob.github.io/nix-review-tools-reports/{}/{}_{}.html",
-                jobset.replacen('/', ":", 1),
-                jobset.replacen('/', "_", 1),
-                eval.id.unwrap_or_default()
-            ))
+            eval.id.map(|eval_id| {
+                format!(
+                    "https://malob.github.io/nix-review-tools-reports/{}/{}_{}.html",
+                    jobset.replacen('/', ":", 1),
+                    jobset.replacen('/', "_", 1),
+                    eval_id
+                )
+            })
         } else {
             None
         };
@@ -156,6 +175,8 @@ impl ReleaseStatus {
             test,
             release_url,
             report_url,
+            git_revision,
+            git_revision_url,
         }
     }
 }
