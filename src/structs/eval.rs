@@ -13,12 +13,12 @@ pub(crate) struct Evaluation {
     pub(crate) spec: String,
     pub(crate) id: u64,
     pub(crate) filter: Option<String>,
-    pub(crate) more: bool,
+    pub(crate) long: bool,
 }
 
 impl Evaluation {
     /// Parses an evaluation from a plain text specification.
-    pub(crate) fn guess_from_spec(spec: &str, more: bool) -> Self {
+    pub(crate) fn guess_from_spec(spec: &str, long: bool) -> Self {
         let spec = spec.trim();
 
         let mut split_spec = spec.splitn(2, '/');
@@ -68,7 +68,7 @@ impl Evaluation {
             ),
             id,
             filter,
-            more,
+            long,
         }
     }
 }

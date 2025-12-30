@@ -218,7 +218,7 @@ impl<'a> From<&'a Evaluation> for EvalReport<'a> {
             url = format!("{url}?filter={filter}");
             filtered = true;
         }
-        if eval.more {
+        if eval.long {
             url = format!("{url}{}full=1", if filtered { "&" } else { "?" });
         }
         Self {

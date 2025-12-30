@@ -53,7 +53,7 @@ impl<'a> PackageReport<'a> {
             "{}/job/{}/{package}{}",
             &*HYDRA_CHECK_HOST_URL,
             args.jobset,
-            if args.more { "/all" } else { "" }
+            if args.long { "/all" } else { "" }
         );
         Self {
             package,
