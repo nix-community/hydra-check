@@ -62,6 +62,10 @@ pub struct HydraCheckCli {
     #[arg(short, long)]
     short: bool,
 
+    /// Fetch more entries if possible (might be slower)
+    #[arg(short, long, conflicts_with = "short")]
+    long: bool,
+
     /// System architecture to check
     #[arg(short, long)]
     arch: Option<String>,
@@ -89,12 +93,14 @@ pub struct HydraCheckCli {
 
 /// Resolved command line arguments, with all options normalized and unwrapped
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub(crate) struct ResolvedArgs {
     /// List of packages or evals to query
     pub(crate) queries: Queries,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
+    pub(crate) long: bool,
     pub(crate) jobset: String,
 }
 
@@ -184,7 +190,7 @@ impl HydraCheckCli {
                         std::process::exit(1);
                     }
                 };
-                channel_stable(&version)
+                channel_stable(version)
             }
             x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => channel_stable(x),
             x => x.into(),
@@ -194,7 +200,11 @@ impl HydraCheckCli {
             "nixpkgs-unstable" => "nixpkgs/unstable".into(),
             "nixos-unstable" => "nixos/unstable".into(),
             "nixos-unstable-small" => "nixos/unstable-small".into(),
-            x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
+            // https://hydra.nixos.org/project/nixos
+            x if x.starts_with("staging") && x.ends_with("-small") => format!("nixos/{x}"),
+            // `nixos/staging` is abandoned while `nixpkgs/staging` is active
+            // https://hydra.nixos.org/project/nixpkgs
+            x if x.starts_with("staging") => format!("nixpkgs/{x}"),
             x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
                 x.replacen("nixos", "nixos/release", 1)
             }
@@ -272,7 +282,7 @@ impl HydraCheckCli {
     fn guess_evals(&self) -> Vec<Evaluation> {
         let mut evals = Vec::new();
         for spec in &self.queries {
-            evals.push(Evaluation::guess_from_spec(spec));
+            evals.push(Evaluation::guess_from_spec(spec, self.long));
         }
         evals
     }
@@ -331,7 +341,7 @@ impl HydraCheckCli {
         let queries = match (args.queries.is_empty(), args.eval) {
             (true, false) => Queries::Jobset,
             // this would resolve to the latest eval of a jobset:
-            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("")]),
+            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("", args.long)]),
             (false, true) => Queries::Evals(args.guess_evals()),
             (false, false) => Queries::Packages(args.guess_packages()),
         };
@@ -340,6 +350,7 @@ impl HydraCheckCli {
             url: args.url,
             json: args.json,
             short: args.short,
+            long: args.long,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
@@ -373,6 +384,12 @@ fn guess_jobset() {
         ("24.05", "nixos/release-24.05"),
         ("nixos-23.05", "nixos/release-23.05"),
         ("nixos-23.11-small", "nixos/release-23.11-small"),
+        ("nixpkgs-25.05-darwin", "nixpkgs/nixpkgs-25.05-darwin"),
+        ("staging", "nixpkgs/staging"),
+        ("staging-next", "nixpkgs/staging-next"),
+        ("staging-next-small", "nixos/staging-next-small"),
+        ("staging-next-24.11", "nixpkgs/staging-next-24.11"),
+        ("staging-next-24.11-small", "nixos/staging-next-24.11-small"),
     ];
     for (channel, jobset) in aliases {
         eprintln!("{channel} => {jobset}");
@@ -397,6 +414,20 @@ fn guess_darwin() {
 #[test]
 #[ignore = "require internet connection"]
 fn guess_stable() {
-    let args = HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
+    let args: HydraCheckCli =
+        HydraCheckCli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
     eprintln!("{:?}", args.jobset);
+    assert!(args.jobset.is_some_and(|x| x.starts_with("nixos/release-")));
+    let args: HydraCheckCli = HydraCheckCli::parse_from([
+        "hydra-check",
+        "--channel",
+        "stable",
+        "--arch",
+        "aarch64-darwin", // apple silicon
+    ])
+    .guess_jobset();
+    eprintln!("{:?}", args.jobset);
+    assert!(args
+        .jobset
+        .is_some_and(|x| x.starts_with("nixpkgs/nixpkgs-") && x.ends_with("darwin")));
 }

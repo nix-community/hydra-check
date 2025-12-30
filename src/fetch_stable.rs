@@ -1,8 +1,8 @@
 use anyhow::bail;
 use log::debug;
+use once_cell::sync::OnceCell as OnceLock;
 use scraper::Html;
 use serde::Deserialize;
-use std::sync::OnceLock;
 
 use crate::{SoupFind, TryAttr};
 
@@ -47,25 +47,9 @@ impl NixpkgsChannelVersion {
     }
 
     /// Fetches the current stable version number of Nixpkgs
-    pub fn stable() -> anyhow::Result<String> {
-        if let Some(version) = NIXPKGS_STABLE_VERSION.get() {
-            return Ok(version.clone());
-        }
-
-        let version = Self::fetch_channel("stable")?;
-        let new_version = version.clone();
-        std::thread::spawn(move || {
-            NIXPKGS_STABLE_VERSION
-                .set(new_version.clone())
-                .unwrap_or_else(|cached_version| {
-                    if new_version != cached_version {
-                        debug!(
-                            "failed to cache the stable version '{new_version}': found already cached version '{cached_version}'"
-                        );
-                    }
-                });
-        });
-        Ok(version)
+    pub fn stable() -> anyhow::Result<&'static str> {
+        let version = NIXPKGS_STABLE_VERSION.get_or_try_init(|| Self::fetch_channel("stable"))?;
+        Ok(version.as_str())
     }
 }
 
@@ -74,7 +58,5 @@ impl NixpkgsChannelVersion {
 fn fetch_stable() {
     let ver = NixpkgsChannelVersion::stable().unwrap();
     println!("latest stable version: {ver}");
-    debug_assert!(regex::Regex::new(r"^[0-9]+\.[0-9]+")
-        .unwrap()
-        .is_match(&ver));
+    debug_assert!(regex::Regex::new(r"^[0-9]+\.[0-9]+").unwrap().is_match(ver));
 }

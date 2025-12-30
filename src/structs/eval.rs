@@ -15,6 +15,7 @@ pub(crate) struct Evaluation {
     pub(crate) spec: String,
     pub(crate) id: u64,
     pub(crate) filter: Option<String>,
+    pub(crate) long: bool,
 }
 
 #[skip_serializing_none]
@@ -86,7 +87,7 @@ impl ShowHydraStatus for EvalStatus {
 
 impl Evaluation {
     /// Parses an evaluation from a plain text specification.
-    pub(crate) fn guess_from_spec(spec: &str) -> Self {
+    pub(crate) fn guess_from_spec(spec: &str, long: bool) -> Self {
         let spec = spec.trim();
 
         let mut split_spec = spec.splitn(2, '/');
@@ -136,6 +137,7 @@ impl Evaluation {
             ),
             id,
             filter,
+            long,
         }
     }
 }
@@ -154,7 +156,7 @@ fn guess_eval_from_spec() {
         ("rustc", 0, Some("rustc".into())),
         ("weird/filter", 0, Some("weird/filter".into())),
     ] {
-        let eval = Evaluation::guess_from_spec(spec);
+        let eval = Evaluation::guess_from_spec(spec, false);
         println!("{eval:?}");
         assert!(eval.id == id && eval.filter == filter);
     }
