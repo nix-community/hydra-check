@@ -28,6 +28,8 @@ use structs::{BuildStatus, EvalInput, EvalStatus, Evaluation, StatusIcon};
 
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
+use flexi_logger::{filter::LogLineFilter, LoggerHandle};
+use once_cell::sync::OnceCell as OnceLock;
 use scraper::{ElementRef, Html};
 use std::time::Duration;
 
@@ -109,6 +111,26 @@ fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
     Ok(skipable)
 }
 
+static LOGGER_HANDLE: OnceLock<LoggerHandle> = OnceLock::new();
+
+/// Sets up the global [`flexi_logger`] with the given log specification.
+/// If a logger has already been set up, it updates the log specification
+/// to be the new one with [`LoggerHandle::push_temp_spec`].
+fn set_up_logger<T>(logspec: T) -> anyhow::Result<LoggerHandle>
+where
+    T: TryInto<flexi_logger::LogSpecification>,
+    T::Error: Sync + Send + std::error::Error + 'static, // required by anyhow
+{
+    let logspec = logspec.try_into()?;
+    let logger_handle = LOGGER_HANDLE.get_or_try_init(|| {
+        flexi_logger::Logger::with(logspec.clone())
+            .format(log_format)
+            .filter(Box::new(LogFilter))
+            .start()
+    })?;
+    Ok(logger_handle.clone())
+}
+
 fn log_format(
     w: &mut dyn std::io::Write,
     _now: &mut flexi_logger::DeferredNow,
@@ -121,5 +143,31 @@ fn log_format(
         _ => "",
     };
     let level = format!("{level}:").to_lowercase().color(color).bold();
-    write!(w, "{} {}", level, &record.args())
+    let module = record.module_path().unwrap_or_default();
+    write!(
+        w,
+        "{} {}{}",
+        level,
+        (!module.starts_with("hydra_check"))
+            .then_some(format!("[{module}] "))
+            .unwrap_or_default(),
+        &record.args()
+    )
+}
+
+struct LogFilter;
+impl LogLineFilter for LogFilter {
+    fn write(
+        &self,
+        now: &mut flexi_logger::DeferredNow,
+        record: &log::Record,
+        log_line_writer: &dyn flexi_logger::filter::LogLineWriter,
+    ) -> std::io::Result<()> {
+        let module = record.module_path().unwrap_or_default();
+        let blacklist = ["selectors", "html5ever"];
+        if blacklist.iter().any(|x| module.starts_with(x)) && record.level() != log::Level::Trace {
+            return Ok(()); // skip log
+        }
+        log_line_writer.write(now, record)
+    }
 }

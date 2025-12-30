@@ -1,9 +1,11 @@
 use hydra_check::HydraCheckCli;
+use std::process::ExitCode;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<ExitCode> {
     let success = HydraCheckCli::execute()?;
     if !success {
-        std::process::exit(1);
+        return Ok(ExitCode::FAILURE);
     }
-    Ok(())
+
+    Ok(ExitCode::SUCCESS)
 }
