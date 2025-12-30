@@ -82,6 +82,10 @@ pub struct HydraCheckCli {
     #[arg(short, long)]
     eval: bool,
 
+    /// Query the release tests of the given channel (jobset)
+    #[arg(short, long, conflicts_with = "PACKAGES")]
+    tests: bool,
+
     /// Print more debugging information
     #[arg(short, long)]
     verbose: bool,
@@ -263,6 +267,29 @@ impl HydraCheckCli {
     }
 
     fn guess_packages(&self) -> Vec<String> {
+        if self.tests {
+            let Some(ref jobset) = self.jobset else {
+                error!("--jobset is not properly set up or deduced");
+                std::process::exit(1);
+            };
+            // aggregate job for channel release tests; see the `job` keys in:
+            // - https://github.com/NixOS/infra/blob/main/channels.nix, and
+            // - https://status.nixos.org/
+            //
+            let aggregate_job = match jobset.as_str() {
+                x if x.ends_with("darwin") => "darwin-tested",
+                x if x.starts_with("nixpkgs/") => "unstable",
+                x if x.starts_with("nixos/") => "tested",
+                _ => {
+                    let default = "tested";
+                    warn!(
+                        "unknown --jobset '{jobset}', assuming job '{default}' for release tests"
+                    );
+                    default
+                }
+            };
+            return vec![aggregate_job.into()];
+        }
         self.queries
             .iter()
             .filter_map(|package| {
@@ -338,7 +365,7 @@ impl HydraCheckCli {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let queries = match (args.queries.is_empty(), args.eval) {
+        let queries = match (args.queries.is_empty() && !args.tests, args.eval) {
             (true, false) => Queries::Jobset,
             // this would resolve to the latest eval of a jobset:
             (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("", args.long)]),
