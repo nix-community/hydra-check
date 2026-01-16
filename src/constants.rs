@@ -64,7 +64,7 @@ pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARG
 /// temp_env::with_var(
 ///     "HYDRA_CHECK_HOST_URL", None::<&str>, // when the env var is unset
 ///     || assert_eq!(
-///         &*hydra_check::constants::HYDRA_CHECK_HOST_URL,
+///         *hydra_check::constants::HYDRA_CHECK_HOST_URL,
 ///         "https://hydra.nixos.org"         // ... use the NixOS default
 ///     )                                     // ... otherwise use the env var
 /// );
@@ -72,11 +72,17 @@ pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARG
 ///
 pub static HYDRA_CHECK_HOST_URL: LazyLock<String> = LazyLock::new(get_host_url);
 
+/// Hardcoded default host URL of the official NixOS Hydra instance.
+/// This is intentionally not `pub` so that it cannot be misused outside
+/// this module. They should always use [`HYDRA_CHECK_HOST_URL`] instead.
+///
+const HYDRA_CHECK_DEFAULT_HOST_URL: &str = "https://hydra.nixos.org";
+
 /// Gets the hydra host URL from the environment variable $HYDRA_CHECK_HOST_URL.
 /// Falls back to the default URL if the variable is not set or empty.
 fn get_host_url() -> String {
     let var_name = "HYDRA_CHECK_HOST_URL";
-    let url_default = "https://hydra.nixos.org";
+    let url_default = HYDRA_CHECK_DEFAULT_HOST_URL;
     std::env::var(var_name)
         .ok()
         .map(|url_env| url_env.trim().to_string())
@@ -92,6 +98,10 @@ fn get_host_url() -> String {
             debug!("using default hydra host URL: {url_default}");
             url_default.into()
         })
+}
+
+pub(crate) fn is_default_host_url() -> bool {
+    *HYDRA_CHECK_HOST_URL == HYDRA_CHECK_DEFAULT_HOST_URL
 }
 
 #[test]

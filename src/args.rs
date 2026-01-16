@@ -1,4 +1,4 @@
-use clap::{arg, command, value_parser, CommandFactory, Parser};
+use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
 use flexi_logger::Logger;
 use log::{debug, error, warn};
@@ -63,7 +63,11 @@ pub struct HydraCheckCli {
     short: bool,
 
     /// Fetch more entries if possible (might be slower)
-    #[arg(short, long, conflicts_with = "short")]
+    #[arg(
+        short,
+        long,
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
     long: bool,
 
     /// System architecture to check
@@ -81,6 +85,18 @@ pub struct HydraCheckCli {
     /// Print details about specific evaluations instead of packages
     #[arg(short, long)]
     eval: bool,
+
+    /// Query the release tests of the given channel (jobset)
+    #[arg(
+        short, long, conflicts_with_all = ["PACKAGES", "eval"],
+        // --releases implies --tests
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
+    tests: bool,
+
+    /// Combine information from channel evals and release --tests
+    #[arg(short, long, conflicts_with_all = ["PACKAGES", "eval"])]
+    releases: bool,
 
     /// Print more debugging information
     #[arg(short, long)]
@@ -101,6 +117,8 @@ pub(crate) struct ResolvedArgs {
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) long: bool,
+    pub(crate) releases: bool,
+    pub(crate) channel: Option<String>,
     pub(crate) jobset: String,
 }
 
@@ -263,6 +281,29 @@ impl HydraCheckCli {
     }
 
     fn guess_packages(&self) -> Vec<String> {
+        if self.tests {
+            let Some(ref jobset) = self.jobset else {
+                error!("--jobset is not properly set up or deduced");
+                std::process::exit(1);
+            };
+            // aggregate job for channel release tests; see the `job` keys in:
+            // - https://github.com/NixOS/infra/blob/main/channels.nix, and
+            // - https://status.nixos.org/
+            //
+            let aggregate_job = match jobset.as_str() {
+                x if x.ends_with("darwin") => "darwin-tested",
+                x if x.starts_with("nixpkgs/") => "unstable",
+                x if x.starts_with("nixos/") => "tested",
+                _ => {
+                    let default = "tested";
+                    warn!(
+                        "unknown --jobset '{jobset}', assuming job '{default}' for release tests"
+                    );
+                    default
+                }
+            };
+            return vec![aggregate_job.into()];
+        }
         self.queries
             .iter()
             .filter_map(|package| {
@@ -280,6 +321,10 @@ impl HydraCheckCli {
     }
 
     fn guess_evals(&self) -> Vec<Evaluation> {
+        if self.queries.is_empty() {
+            // this would resolve to the latest eval of a jobset:
+            return vec![Evaluation::guess_from_spec("", self.long)];
+        }
         let mut evals = Vec::new();
         for spec in &self.queries {
             evals.push(Evaluation::guess_from_spec(spec, self.long));
@@ -338,12 +383,10 @@ impl HydraCheckCli {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let queries = match (args.queries.is_empty(), args.eval) {
-            (true, false) => Queries::Jobset,
-            // this would resolve to the latest eval of a jobset:
-            (true, true) => Queries::Evals(vec![Evaluation::guess_from_spec("", args.long)]),
-            (false, true) => Queries::Evals(args.guess_evals()),
-            (false, false) => Queries::Packages(args.guess_packages()),
+        let queries = match (args.eval, !args.queries.is_empty() || args.tests) {
+            (true, _) => Queries::Evals(args.guess_evals()),
+            (_, true) => Queries::Packages(args.guess_packages()),
+            (_, false) => Queries::Jobset,
         };
         Ok(ResolvedArgs {
             queries,
@@ -351,6 +394,8 @@ impl HydraCheckCli {
             json: args.json,
             short: args.short,
             long: args.long,
+            releases: args.releases,
+            channel: args.channel,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),

@@ -32,15 +32,15 @@ impl ShowHydraStatus for BuildStatus {
             (true, true) => format!("{icon}"),
         };
         row.push(status.into());
-        match &self.job_name {
-            Some(job_name) => row.push(job_name.as_str().into()),
-            None => {}
+        // job name is only available in some cases (e.g. in eval details)
+        if let Some(x) = self.job_name.as_deref() {
+            row.push(x.into());
         }
         let details = if self.evals {
             let name = self.name.clone().unwrap_or_default().into();
             let timestamp = self
                 .timestamp
-                .clone()
+                .as_deref()
                 .unwrap_or_default()
                 .split_once('T')
                 .unwrap_or_default()

@@ -34,6 +34,7 @@ impl FetchHydraReport for BuildReport {
 }
 
 impl BuildReport {
+    #[must_use]
     pub(super) fn from_url(url: &str) -> Self {
         Self {
             url: url.to_string(),
