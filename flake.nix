@@ -33,7 +33,7 @@
             nixfmt-rfc-style # for formatting nix code
           ] ++ nativeBuildInputs;
 
-          env = with pkgs.buildPackages; env // {
+          env = with pkgs.buildPackages; (removeAttrs env ["RUST_LOG"]) // {
             # for developments, e.g. symbol lookup in std library
             RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
             # for debugging

@@ -47,4 +47,4 @@ match_bool = "allow"
 single_match = "allow"
 single_match_else = "allow"
 missing_errors_doc = "allow"
-multiple_crate_versions = "allow"
+multiple_crate_versions = "allow" # toggle to review dependencies
