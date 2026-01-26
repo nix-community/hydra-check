@@ -134,6 +134,12 @@ impl HydraCheckCli {
             }
         };
         if let Some(arch) = self.arch.clone() {
+            if self.eval || self.tests {
+                warn!(
+                    "--arch is mostly ignored when querying evals; {}",
+                    "consider specifying --channel or --jobset instead"
+                );
+            }
             // allow empty `--arch` as it may be the user's intention to
             // specify architectures explicitly for each package
             if !arch.is_empty() {
