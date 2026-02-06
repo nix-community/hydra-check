@@ -301,10 +301,21 @@ impl EvalReport<'_> {
             ..self
         })
     }
+
+    fn is_success(&self) -> bool {
+        self.aborted.is_empty()
+            && self.now_fail.is_empty()
+            && self.still_fail.is_empty()
+            && self.unfinished.is_empty()
+            && self.new.iter().all(|b| b.success)
+            && self.removed.iter().all(|b| b.success)
+            && self.inputs.iter().all(|i| i.input_type.is_some())
+    }
 }
 
 impl ResolvedArgs {
     pub(crate) fn fetch_and_print_evaluations(&self, evals: &[Evaluation]) -> anyhow::Result<bool> {
+        let mut status = true;
         let mut indexmap = IndexMap::new();
         let evals: Vec<_> = match evals.iter().any(|eval| eval.id == 0) {
             false => evals.to_owned(),
@@ -353,6 +364,9 @@ impl ResolvedArgs {
                 );
             }
             let stat = stat.fetch_and_read()?;
+            if !stat.is_success() {
+                status = false;
+            }
             if self.json {
                 indexmap.insert(&stat.eval.spec, stat);
                 continue;
@@ -389,6 +403,6 @@ impl ResolvedArgs {
         if self.json {
             println!("{}", serde_json::to_string_pretty(&indexmap)?);
         }
-        Ok(true)
+        Ok(status)
     }
 }
