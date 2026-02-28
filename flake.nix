@@ -47,7 +47,7 @@
                     cargo # with shell completions, instead of cargo-auditable
                     cargo-insta # for updating insta snapshots
                     clippy # more lints for better rust code
-                    nixfmt-rfc-style # for formatting nix code
+                    nixfmt # for formatting nix code
                   ]
                   ++ nativeBuildInputs;
 
