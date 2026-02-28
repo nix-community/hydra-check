@@ -10,6 +10,7 @@ runs
 /.mypy_cache/
 /*.egg-info/
 /.direnv/
+.DS_Store
 
 # Nix
 /**/result*

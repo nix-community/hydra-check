@@ -22,6 +22,6 @@ git commit -m "build(release): v${NEWVERSION}"
 # push & tag
 set -x
 CURRENT_BRANCH="$(git branch --show-current)"
-REMOTE=$(git remote --verbose | grep "REPO" | uniq)
+REMOTE=$(git remote --verbose | grep "$REPO" | uniq)
 git push "$REMOTE" "$CURRENT_BRANCH"
 gh release --repo "$REPO" create "v${NEWVERSION}" -t "v${NEWVERSION}" --prerelease --target "$CURRENT_BRANCH" --generate-notes

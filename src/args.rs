@@ -1,4 +1,4 @@
-use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
+use clap::{builder::ArgPredicate, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
 use flexi_logger::Logger;
 use log::{debug, error, warn};

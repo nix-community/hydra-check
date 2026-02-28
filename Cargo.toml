@@ -1,6 +1,6 @@
 [package]
 name = "hydra-check"
-version = "2.0.5"
+version = "2.1.0"
 description = "Check hydra for the build status of a package"
 authors = ["Felix Richter <github@krebsco.de>", "Bryan Lai <bryanlais@gmail.com>"]
 edition = "2021"
@@ -47,4 +47,4 @@ match_bool = "allow"
 single_match = "allow"
 single_match_else = "allow"
 missing_errors_doc = "allow"
-multiple_crate_versions = "allow"
+multiple_crate_versions = "allow" # toggle to review dependencies
