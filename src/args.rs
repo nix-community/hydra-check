@@ -316,7 +316,7 @@ impl HydraCheckCli {
                 if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
                     error!(
                         "instead of '{package}', you want {}",
-                        "python3xPackages... (e.g. python311Packages)"
+                        "python3xPackages... (e.g. python314Packages)"
                     );
                     None
                 } else {
