@@ -19,7 +19,7 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-unstable
     - uses: DeterminateSystems/magic-nix-cache-action@908b263ff629f4cc17666315b7fd3ec127c6244d # v14
-    - run: nix-build
+    - run: nix-build -A default
 
   flakes:
     env:
